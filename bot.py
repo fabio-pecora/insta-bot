@@ -57,23 +57,27 @@ def is_male_username(username):
     ]
     return any(name in username.lower() for name in male_keywords)
 
+import pyautogui
+
 def get_follower_usernames(driver, max_followers=100):
     print("📜 Scrolling followers and collecting usernames...")
 
     try:
         wait = WebDriverWait(driver, 15)
-        modal = wait.until(EC.presence_of_element_located((By.XPATH, "//div[@role='dialog']//div[contains(@style, 'overflow')]")))
-
+        modal = wait.until(EC.presence_of_element_located(
+            (By.XPATH, "//div[@role='dialog']//div[contains(@style, 'overflow')]")
+        ))
     except:
         print("❌ Could not find the followers list. Is the modal really open?")
         input("🔍 Press Enter to exit.")
         driver.quit()
         return []
 
-    last_height = 0
     usernames = set()
+    scrolls = 0
+    max_scrolls = 50
 
-    while len(usernames) < max_followers:
+    while len(usernames) < max_followers and scrolls < max_scrolls:
         links = modal.find_elements(By.TAG_NAME, "a")
         for link in links:
             href = link.get_attribute("href")
@@ -84,11 +88,18 @@ def get_follower_usernames(driver, max_followers=100):
                     print(f"✅ Found: {username}")
                     if len(usernames) >= max_followers:
                         break
-        driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", modal)
+
+        # Move mouse to center of screen and scroll down
+        screen_width, screen_height = pyautogui.size()
+        pyautogui.moveTo(screen_width / 2, screen_height / 2)
+        pyautogui.scroll(-300)  # negative = scroll down
+
+        scrolls += 1
         time.sleep(1.5)
 
     print(f"🎉 Collected {len(usernames)} usernames.")
     return list(usernames)
+
 
 def follow_user_from_modal(driver, username):
     try:
