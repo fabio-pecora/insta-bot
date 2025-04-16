@@ -1,36 +1,34 @@
 import time
 import csv
-from datetime import datetime
+from datetime import datetime, timedelta
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import undetected_chromedriver as uc
+import pyautogui
+import os
 
 USERNAME = "bebesitahavoglia"
 PASSWORD = "HaVogLi41!_"
 TARGET_PROFILE = "lafederica.nazionale"
+FOLLOWED_USERS_FILE = 'followed_users.csv'
 
 def login_to_instagram(driver):
     driver.get("https://www.instagram.com/accounts/login/")
     time.sleep(5)
-    
-    # Accept cookies
     try:
         cookies_btn = driver.find_element(By.XPATH, "//button[text()='Only allow essential cookies']")
         cookies_btn.click()
         time.sleep(2)
     except:
         pass
-
     username_input = driver.find_element(By.NAME, "username")
     password_input = driver.find_element(By.NAME, "password")
-
     username_input.send_keys(USERNAME)
     password_input.send_keys(PASSWORD)
     password_input.send_keys(Keys.ENTER)
-
     time.sleep(5)
 
 def go_to_target_profile(driver, profile_username):
@@ -45,7 +43,7 @@ def open_followers_list(driver):
     time.sleep(3)
 
 def save_followed_user(username):
-    with open('followed_users.csv', mode='a', newline='', encoding='utf-8') as file:
+    with open(FOLLOWED_USERS_FILE, mode='a', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         writer.writerow([username, datetime.now().strftime("%Y-%m-%d")])
 
@@ -57,11 +55,8 @@ def is_male_username(username):
     ]
     return any(name in username.lower() for name in male_keywords)
 
-import pyautogui
-
-def get_follower_usernames(driver, max_followers=100):
+def get_follower_usernames(driver, max_followers=200):
     print("📜 Scrolling followers and collecting usernames...")
-
     try:
         wait = WebDriverWait(driver, 15)
         modal = wait.until(EC.presence_of_element_located(
@@ -88,30 +83,46 @@ def get_follower_usernames(driver, max_followers=100):
                     print(f"✅ Found: {username}")
                     if len(usernames) >= max_followers:
                         break
-
-        # Move mouse to center of screen and scroll down
         screen_width, screen_height = pyautogui.size()
         pyautogui.moveTo(screen_width / 2, screen_height / 2)
-        pyautogui.scroll(-300)  # negative = scroll down
-
+        pyautogui.scroll(-300)
         scrolls += 1
         time.sleep(1.5)
 
     print(f"🎉 Collected {len(usernames)} usernames.")
     return list(usernames)
 
-
-def follow_user_from_modal(driver, username):
-    try:
-        user_button = WebDriverWait(driver, 3).until(
-            EC.element_to_be_clickable((By.XPATH, f"//a[contains(@href, '/{username}/')]/../../../..//button[text()='Follow']"))
-        )
-        user_button.click()
-        save_followed_user(username)
-        print(f"✅ Followed: {username}")
-        time.sleep(2)
-    except:
-        print(f"⚠️ Could not follow: {username}")
+def unfollow_old_users(driver):
+    print("🧹 Checking for users to unfollow...")
+    if not os.path.exists(FOLLOWED_USERS_FILE):
+        return
+    rows = []
+    with open(FOLLOWED_USERS_FILE, mode='r', newline='', encoding='utf-8') as file:
+        reader = csv.reader(file)
+        for row in reader:
+            if len(row) == 2:
+                username, date_str = row
+                follow_date = datetime.strptime(date_str, "%Y-%m-%d")
+                if datetime.now() - follow_date >= timedelta(days=2):
+                    try:
+                        driver.get(f"https://www.instagram.com/{username}/")
+                        time.sleep(3)
+                        unfollow_btn = WebDriverWait(driver, 5).until(
+                            EC.element_to_be_clickable((By.XPATH, "//button[text()='Following']"))
+                        )
+                        unfollow_btn.click()
+                        confirm_btn = WebDriverWait(driver, 5).until(
+                            EC.element_to_be_clickable((By.XPATH, "//button[text()='Unfollow']"))
+                        )
+                        confirm_btn.click()
+                        print(f"❌ Unfollowed: {username}")
+                        continue
+                    except:
+                        print(f"⚠️ Could not unfollow: {username}")
+            rows.append(row)
+    with open(FOLLOWED_USERS_FILE, mode='w', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+        writer.writerows(rows)
 
 def main():
     options = uc.ChromeOptions()
@@ -120,33 +131,45 @@ def main():
 
     try:
         login_to_instagram(driver)
+        unfollow_old_users(driver)
         go_to_target_profile(driver, TARGET_PROFILE)
         open_followers_list(driver)
-
         input("🛑 Check if followers modal is open, then press Enter to continue...")
 
-        usernames = get_follower_usernames(driver, max_followers=100)
+        usernames = get_follower_usernames(driver, max_followers=200)
 
-        followed = 0
+        male_usernames = []
         for username in usernames:
             if is_male_username(username):
-                follow_user_from_modal(driver, username)
-                followed += 1
-                if followed >= 20:
-                    break
-            else:
-                print(f"❌ Skipped (not male-ish): {username}")
+                male_usernames.append(username)
+                print(f"✅ Queued male username: {username}")
+            if len(male_usernames) >= 20:
+                break
+
+        print(f"🚀 Visiting 20 male profiles and following them...")
+
+        for username in male_usernames:
+            try:
+                driver.get(f"https://www.instagram.com/{username}/")
+                time.sleep(3)
+                follow_btn = WebDriverWait(driver, 5).until(
+                    EC.element_to_be_clickable((By.XPATH, "//button[text()='Follow']"))
+                )
+                driver.execute_script("arguments[0].click();", follow_btn)
+                save_followed_user(username)
+                print(f"✅ Followed: {username}")
+                time.sleep(2)
+            except Exception as e:
+                print(f"⚠️ Could not follow: {username} — {e}")
 
         input("✅ Done! Press Enter to close the bot.")
-
     except Exception as e:
         print(f"🚨 Error: {e}")
-
     finally:
         try:
             driver.quit()
         except:
-            pass  # Ignore WinError 6
+            pass
 
 if __name__ == "__main__":
     main()
