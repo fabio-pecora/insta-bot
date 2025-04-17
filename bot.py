@@ -135,6 +135,43 @@ def unfollow_old_users(driver):
     with open(FOLLOWED_USERS_FILE, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         writer.writerows(rows)
+    
+def follow_male_usernames(driver, usernames, max_to_follow=20):
+    male_usernames = []
+    for username in usernames:
+        if is_male_username(username):
+            male_usernames.append(username)
+            print(f"✅ Queued male username: {username}")
+        if len(male_usernames) >= max_to_follow:
+            break
+
+    print(f"🚀 Visiting {max_to_follow} male profiles and following them...")
+
+    for username in male_usernames:
+        try:
+            driver.get(f"https://www.instagram.com/{username}/")
+            time.sleep(3)
+            driver.execute_script("window.scrollTo(0, 0);")
+            time.sleep(1)
+            buttons = WebDriverWait(driver, 5).until(
+                EC.presence_of_all_elements_located((By.TAG_NAME, "button"))
+            )
+            found = False
+            for btn in buttons:
+                if btn.text.strip().lower() == "follow":
+                    driver.execute_script("arguments[0].scrollIntoView(true);", btn)
+                    time.sleep(0.5)
+                    driver.execute_script("arguments[0].click();", btn)
+                    save_followed_user(username)
+                    print(f"✅ Followed: {username}")
+                    time.sleep(random.uniform(3.5, 6))
+                    found = True
+                    break
+            if not found:
+                print(f"⚠️ No clickable follow button found: {username}")
+        except Exception as e:
+            print(f"⚠️ Could not follow: {username} — {e}")
+
 
 def main():
     options = uc.ChromeOptions()
@@ -148,41 +185,7 @@ def main():
         open_followers_list(driver)
 
         usernames = get_follower_usernames(driver, max_followers=200)
-
-        male_usernames = []
-        for username in usernames:
-            if is_male_username(username):
-                male_usernames.append(username)
-                print(f"✅ Queued male username: {username}")
-            if len(male_usernames) >= 20:
-                break
-
-        print(f"🚀 Visiting 20 male profiles and following them...")
-
-        for username in male_usernames:
-            try:
-                driver.get(f"https://www.instagram.com/{username}/")
-                time.sleep(3)
-                driver.execute_script("window.scrollTo(0, 0);")
-                time.sleep(1)
-                buttons = WebDriverWait(driver, 5).until(
-                    EC.presence_of_all_elements_located((By.TAG_NAME, "button"))
-                )
-                found = False
-                for btn in buttons:
-                    if btn.text.strip().lower() == "follow":
-                        driver.execute_script("arguments[0].scrollIntoView(true);", btn)
-                        time.sleep(0.5)
-                        driver.execute_script("arguments[0].click();", btn)
-                        save_followed_user(username)
-                        print(f"✅ Followed: {username}")
-                        time.sleep(random.uniform(3.5, 6))
-                        found = True
-                        break
-                if not found:
-                    print(f"⚠️ No clickable follow button found: {username}")
-            except Exception as e:
-                print(f"⚠️ Could not follow: {username} — {e}")
+        follow_male_usernames(driver, usernames)
 
         input("✅ Done! Press Enter to close the bot.")
     except Exception as e:
@@ -192,6 +195,5 @@ def main():
             driver.quit()
         except:
             pass
-
 if __name__ == "__main__":
     main()
