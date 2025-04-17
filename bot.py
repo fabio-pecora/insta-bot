@@ -46,7 +46,7 @@ def open_followers_list(driver):
 def save_followed_user(username):
     with open(FOLLOWED_USERS_FILE, mode='a', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
-        writer.writerow([username, datetime.now().strftime("%Y-%m-%d")])
+        writer.writerow([username, datetime.now().strftime("%m/%d/%Y")])
 
 def is_male_username(username):
     male_keywords = [
@@ -108,33 +108,64 @@ def unfollow_old_users(driver):
     print("🧹 Checking for users to unfollow...")
     if not os.path.exists(FOLLOWED_USERS_FILE):
         return
+
     rows = []
     with open(FOLLOWED_USERS_FILE, mode='r', newline='', encoding='utf-8') as file:
         reader = csv.reader(file)
         for row in reader:
             if len(row) == 2:
                 username, date_str = row
-                follow_date = datetime.strptime(date_str, "%Y-%m-%d")
+                try:
+                    follow_date = datetime.strptime(date_str, "%m/%d/%Y")
+                except ValueError:
+                    print(f"⚠️ Invalid date format for {username}: {date_str}")
+                    rows.append(row)
+                    continue
+
                 if datetime.now() - follow_date >= timedelta(days=2):
                     try:
                         driver.get(f"https://www.instagram.com/{username}/")
-                        time.sleep(3)
-                        unfollow_btn = WebDriverWait(driver, 5).until(
-                            EC.element_to_be_clickable((By.XPATH, "//button[text()='Following']"))
+                        time.sleep(4)
+
+                        # Step 1: Click the "Following" button
+                        buttons = WebDriverWait(driver, 10).until(
+                            EC.presence_of_all_elements_located((By.TAG_NAME, "button"))
                         )
-                        unfollow_btn.click()
-                        confirm_btn = WebDriverWait(driver, 5).until(
+                        following_btn = next((btn for btn in buttons if "following" in btn.text.strip().lower()), None)
+
+                        if not following_btn:
+                            raise Exception("No 'Following' button found")
+
+                        driver.execute_script("arguments[0].scrollIntoView(true);", following_btn)
+                        time.sleep(0.5)
+                        driver.execute_script("arguments[0].click();", following_btn)
+                        time.sleep(1.5)
+
+                        # Step 2: Wait for confirmation menu and click "Unfollow"
+                        unfollow_btn = WebDriverWait(driver, 5).until(
                             EC.element_to_be_clickable((By.XPATH, "//button[text()='Unfollow']"))
                         )
-                        confirm_btn.click()
+                        driver.execute_script("arguments[0].click();", unfollow_btn)
                         print(f"❌ Unfollowed: {username}")
+                        continue  # Success! Don't re-add this user to the CSV
+
+                    except Exception as e:
+                        print(f"⚠️ Could not unfollow {username} — {e}")
+                        rows.append(row)  # Keep the user in the list if unfollow failed
                         continue
-                    except:
-                        print(f"⚠️ Could not unfollow: {username}")
-            rows.append(row)
+
+            else:
+                rows.append(row)
+
+    # Rewrite only users who are still followed
     with open(FOLLOWED_USERS_FILE, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         writer.writerows(rows)
+
+
+
+
+
     
 def follow_male_usernames(driver, usernames, max_to_follow=20):
     male_usernames = []
