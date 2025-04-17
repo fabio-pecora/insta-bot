@@ -9,6 +9,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import undetected_chromedriver as uc
 import pyautogui
 import os
+import random
 
 USERNAME = "bebesitahavoglia"
 PASSWORD = "HaVogLi41!_"
@@ -49,9 +50,20 @@ def save_followed_user(username):
 
 def is_male_username(username):
     male_keywords = [
-        "marco", "giovanni", "luca", "john", "mario", "andrea", "luigi",
-        "guy", "boy", "man", "he", "him", "riccardo", "paolo", "francesco",
-        "angelo", "alessandro", "davide", "samuele", "enrico", "domenico"
+        "marco", "giovanni", "luca", "mario", "andrea", "luigi", "paolo", "francesco",
+        "angelo", "alessandro", "davide", "samuele", "enrico", "domenico", "salvatore",
+        "giuseppe", "fabio", "riccardo", "gabriele", "lorenzo", "emanuele", "carlo",
+        "claudio", "roberto", "antonio", "vincenzo", "matteo", "stefano", "federico",
+        "michele", "massimo", "giacomo", "franco", "alberto", "ugo", "raffaele", "renato",
+        "pietro", "tommaso", "cesare", "nestore", "elio", "ernesto", "aldo", "tullio",
+        "teodoro", "armando", "corrado", "silvio", "oscar", "edoardo", "ettore", "rino",
+        "agostino", "arturo", "gino", "luigino", "gianni", "maurizio", "nicolò",
+        "valerio", "ivan", "sebastiano", "giordano", "mirko", "leonardo", "daniele",
+        "pierluigi", "pierpaolo", "gianluca", "gianmarco", "gianfranco", "gianpiero",
+        "christian", "cristian", "pasquale", "rosario", "cosimo", "nunzio",
+        "sergio", "ludovico", "ruggiero", "gualtiero", "albino", "fabrizio", "damiano",
+        "eugenio", "eliseo", "giulio", "orazio", "adolfo", "ferruccio", "nello",
+        "donato", "alessio", "teo", "guido", "matias", "rocco", "battista", "remo"
     ]
     return any(name in username.lower() for name in male_keywords)
 
@@ -134,7 +146,6 @@ def main():
         unfollow_old_users(driver)
         go_to_target_profile(driver, TARGET_PROFILE)
         open_followers_list(driver)
-        input("🛑 Check if followers modal is open, then press Enter to continue...")
 
         usernames = get_follower_usernames(driver, max_followers=200)
 
@@ -152,13 +163,24 @@ def main():
             try:
                 driver.get(f"https://www.instagram.com/{username}/")
                 time.sleep(3)
-                follow_btn = WebDriverWait(driver, 5).until(
-                    EC.element_to_be_clickable((By.XPATH, "//button[text()='Follow']"))
+                driver.execute_script("window.scrollTo(0, 0);")
+                time.sleep(1)
+                buttons = WebDriverWait(driver, 5).until(
+                    EC.presence_of_all_elements_located((By.TAG_NAME, "button"))
                 )
-                driver.execute_script("arguments[0].click();", follow_btn)
-                save_followed_user(username)
-                print(f"✅ Followed: {username}")
-                time.sleep(2)
+                found = False
+                for btn in buttons:
+                    if btn.text.strip().lower() == "follow":
+                        driver.execute_script("arguments[0].scrollIntoView(true);", btn)
+                        time.sleep(0.5)
+                        driver.execute_script("arguments[0].click();", btn)
+                        save_followed_user(username)
+                        print(f"✅ Followed: {username}")
+                        time.sleep(random.uniform(3.5, 6))
+                        found = True
+                        break
+                if not found:
+                    print(f"⚠️ No clickable follow button found: {username}")
             except Exception as e:
                 print(f"⚠️ Could not follow: {username} — {e}")
 
