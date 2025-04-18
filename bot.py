@@ -11,17 +11,16 @@ import pyautogui
 import os
 import random
 
-USERNAME = "bebesitahavoglia"
-PASSWORD = "HaVogLi41!_"
+USERNAME = "george_jordan123456"
+PASSWORD = "ciaociaociaO1.."
 TARGET_PROFILE = "lafederica.nazionale"
 FOLLOWED_USERS_FILE = 'followed_users.csv'
 
 
 import json
 
-# Function for test so that I do not have to log in many many times
 def load_instagram_session(driver):
-    driver.get("https://www.instagram.com/bebesitahavoglia/")
+    driver.get("https://www.instagram.com/")
     time.sleep(3)
 
     # Load cookies from file
@@ -30,13 +29,21 @@ def load_instagram_session(driver):
             cookies = json.load(file)
 
         for cookie in cookies:
-            # Fix for "sameSite" value if present
-            if "sameSite" in cookie:
-                if cookie["sameSite"].lower() == "no_restriction":
-                    cookie["sameSite"] = "None"
-            driver.add_cookie(cookie)
+            cookie_dict = {
+                "name": cookie.get("name"),
+                "value": cookie.get("value"),
+                "domain": cookie.get("domain"),
+                "path": cookie.get("path", "/"),
+                "secure": cookie.get("secure", False),
+                "httpOnly": cookie.get("httpOnly", False),
+            }
+            if "expiry" in cookie:
+                cookie_dict["expiry"] = cookie["expiry"]
+            try:
+                driver.add_cookie(cookie_dict)
+            except Exception as e:
+                print(f"⚠️ Skipped one cookie: {e}")
 
-        # Refresh the page to activate cookies
         driver.get("https://www.instagram.com/")
         time.sleep(3)
         print("✅ Session cookies loaded successfully!")
@@ -44,6 +51,7 @@ def load_instagram_session(driver):
         print("❌ Cookie file not found. Please export your cookies to 'instagram_cookies.json'")
         input("⏸️ Press Enter to quit.")
         driver.quit()
+
 
 
 def human_typing(element, text):
@@ -299,7 +307,6 @@ def main():
     driver = uc.Chrome(options=options)  # ✅ Only create it once here
 
     try:
-        driver.delete_all_cookies()       # ✅ Clears any stale session data
         # login_to_instagram(driver)  # ← Comment this out for now
         load_instagram_session(driver)  # ← Use this for testing
 
