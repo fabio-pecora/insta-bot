@@ -16,19 +16,36 @@ PASSWORD = "HaVogLi41!_"
 TARGET_PROFILE = "lafederica.nazionale"
 FOLLOWED_USERS_FILE = 'followed_users.csv'
 
+def human_typing(element, text):
+    for char in text:
+        element.send_keys(char)
+        time.sleep(random.uniform(0.08, 0.22))
+
+
 def login_to_instagram(driver):
     driver.get("https://www.instagram.com/accounts/login/")
-    time.sleep(5)
+    
+    # Wait until username input is ready
+    WebDriverWait(driver, 15).until(
+        EC.presence_of_element_located((By.NAME, "username"))
+    )
+    time.sleep(random.uniform(1, 2))
+
     try:
         cookies_btn = driver.find_element(By.XPATH, "//button[text()='Only allow essential cookies']")
         cookies_btn.click()
-        time.sleep(2)
+        time.sleep(1)
     except:
         pass
+
     username_input = driver.find_element(By.NAME, "username")
     password_input = driver.find_element(By.NAME, "password")
-    username_input.send_keys(USERNAME)
-    password_input.send_keys(PASSWORD)
+
+    human_typing(username_input, USERNAME)
+    time.sleep(random.uniform(1, 1.5))
+    human_typing(password_input, PASSWORD)
+    time.sleep(random.uniform(0.5, 1))
+
     password_input.send_keys(Keys.ENTER)
     time.sleep(5)
 
@@ -75,8 +92,6 @@ def get_follower_usernames(driver, max_followers=200):
             (By.XPATH, "//div[@role='dialog']//div[contains(@style, 'overflow')]")
         ))
     except:
-        print("❌ Could not find the followers list. Is the modal really open?")
-        input("🔍 Press Enter to exit.")
         driver.quit()
         return []
 
@@ -140,27 +155,70 @@ def unfollow_old_users(driver):
                         time.sleep(0.5)
                         driver.execute_script("arguments[0].click();", following_btn)
                         time.sleep(1.5)
+                        
 
-                        # Step 2: Wait for confirmation menu and click "Unfollow"
-                        unfollow_btn = WebDriverWait(driver, 5).until(
-                            EC.element_to_be_clickable((By.XPATH, "//button[text()='Unfollow']"))
-                        )
-                        driver.execute_script("arguments[0].click();", unfollow_btn)
-                        print(f"❌ Unfollowed: {username}")
-                        continue  # Success! Don't re-add this user to the CSV
+
+                        # Right after clicking the "Following" button
+                        time.sleep(2)
+                        buttons = driver.find_elements(By.TAG_NAME, "button")
+                        print(f"🧩 Found {len(buttons)} buttons on screen after clicking 'Following':")
+                        for idx, btn in enumerate(buttons):
+                            try:
+                                print(f"{idx+1}. '{btn.text}' - displayed: {btn.is_displayed()}")
+                            except:
+                                print(f"{idx+1}. [Could not read text]")
+
+
+
+
+
+
+                        # NEW: Try to find the Unfollow button in the dropdown menu
+                        try:
+                            time.sleep(2)  # Let the dropdown render
+                            possible_unfollow_elements = driver.find_elements(By.XPATH, "//*[contains(text(), 'Unfollow')]")
+
+                            clicked = False
+                            for el in possible_unfollow_elements:
+                                if el.is_displayed():
+                                    print(f"✅ Found unfollow element: '{el.text.strip()}'")
+                                    driver.execute_script("arguments[0].click();", el)
+                                    clicked = True
+                                    print(f"❌ Unfollowed: {username}")
+                                    break
+
+                            if not clicked:
+                                raise Exception("Unfollow button not found or not visible.")
+
+                        except Exception as e:
+                            print(f"⚠️ Could not click 'Unfollow' button for {username} — {e}")
+                            driver.save_screenshot(f"screenshot_failed_unfollow_{username}.png")
+                            rows.append(row)
+                            print(f"❌ Unfollowed: {username}")
+                            continue
+
+
+                            
+                        except Exception as e:
+                            print(f"⚠️ Could not click 'Unfollow' button for {username} — {e}")
+                            driver.save_screenshot(f"screenshot_failed_{username}.png")
+                            rows.append(row)
+                            continue
 
                     except Exception as e:
                         print(f"⚠️ Could not unfollow {username} — {e}")
-                        rows.append(row)  # Keep the user in the list if unfollow failed
+                        driver.save_screenshot(f"screenshot_failed_{username}.png")
+                        rows.append(row)
                         continue
 
             else:
                 rows.append(row)
 
-    # Rewrite only users who are still followed
+    # Rewrite CSV only for users still followed
     with open(FOLLOWED_USERS_FILE, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         writer.writerows(rows)
+
 
 
 
@@ -210,7 +268,10 @@ def main():
     driver = uc.Chrome(options=options)
 
     try:
-        login_to_instagram(driver)
+        # driver = uc.Chrome(options=options)
+        # driver.delete_all_cookies()  # ✅ Clears any stale session data
+        login_to_instagram(driver)   # ✅ Logs in with human typing
+
         unfollow_old_users(driver)
         go_to_target_profile(driver, TARGET_PROFILE)
         open_followers_list(driver)
