@@ -16,6 +16,36 @@ PASSWORD = "HaVogLi41!_"
 TARGET_PROFILE = "lafederica.nazionale"
 FOLLOWED_USERS_FILE = 'followed_users.csv'
 
+
+import json
+
+# Function for test so that I do not have to log in many many times
+def load_instagram_session(driver):
+    driver.get("https://www.instagram.com/bebesitahavoglia/")
+    time.sleep(3)
+
+    # Load cookies from file
+    if os.path.exists("instagram_cookies.json"):
+        with open("instagram_cookies.json", "r") as file:
+            cookies = json.load(file)
+
+        for cookie in cookies:
+            # Fix for "sameSite" value if present
+            if "sameSite" in cookie:
+                if cookie["sameSite"].lower() == "no_restriction":
+                    cookie["sameSite"] = "None"
+            driver.add_cookie(cookie)
+
+        # Refresh the page to activate cookies
+        driver.get("https://www.instagram.com/")
+        time.sleep(3)
+        print("✅ Session cookies loaded successfully!")
+    else:
+        print("❌ Cookie file not found. Please export your cookies to 'instagram_cookies.json'")
+        input("⏸️ Press Enter to quit.")
+        driver.quit()
+
+
 def human_typing(element, text):
     for char in text:
         element.send_keys(char)
@@ -265,12 +295,14 @@ def follow_male_usernames(driver, usernames, max_to_follow=20):
 def main():
     options = uc.ChromeOptions()
     options.add_argument("--start-maximized")
-    driver = uc.Chrome(options=options)
+
+    driver = uc.Chrome(options=options)  # ✅ Only create it once here
 
     try:
-        # driver = uc.Chrome(options=options)
-        # driver.delete_all_cookies()  # ✅ Clears any stale session data
-        login_to_instagram(driver)   # ✅ Logs in with human typing
+        driver.delete_all_cookies()       # ✅ Clears any stale session data
+        # login_to_instagram(driver)  # ← Comment this out for now
+        load_instagram_session(driver)  # ← Use this for testing
+
 
         unfollow_old_users(driver)
         go_to_target_profile(driver, TARGET_PROFILE)
@@ -287,5 +319,7 @@ def main():
             driver.quit()
         except:
             pass
+
 if __name__ == "__main__":
     main()
+
