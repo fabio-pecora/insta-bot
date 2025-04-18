@@ -220,18 +220,15 @@ def unfollow_old_users(driver):
                                 raise Exception("Unfollow button not found or not visible.")
                         except Exception as e:
                             print(f"⚠️ Could not click 'Unfollow' button for {username} — {e}")
-                            driver.save_screenshot(f"screenshot_failed_unfollow_{username}.png")
                             rows.append(row)
                             print(f"❌ Unfollowed: {username}")
                             continue   
                         except Exception as e:
                             print(f"⚠️ Could not click 'Unfollow' button for {username} — {e}")
-                            driver.save_screenshot(f"screenshot_failed_{username}.png")
                             rows.append(row)
                             continue
                     except Exception as e:
                         print(f"⚠️ Could not unfollow {username} — {e}")
-                        driver.save_screenshot(f"screenshot_failed_{username}.png")
                         rows.append(row)
                         continue
             else:
@@ -243,13 +240,16 @@ def unfollow_old_users(driver):
 
 def follow_male_usernames(driver, usernames, max_to_follow=20):
     male_usernames = []
+    followed_this_round = []
+
     for username in usernames:
         if is_male_username(username):
             male_usernames.append(username)
-            print(f"Queued male username: {username}")
+            print(f"✅ Queued male username: {username}")
         if len(male_usernames) >= max_to_follow:
             break
-    print(f"Visiting {max_to_follow} male profiles and following them...")
+
+    print(f"🚀 Visiting {len(male_usernames)} male profiles and following them...")
 
     for username in male_usernames:
         try:
@@ -257,9 +257,11 @@ def follow_male_usernames(driver, usernames, max_to_follow=20):
             time.sleep(3)
             driver.execute_script("window.scrollTo(0, 0);")
             time.sleep(1)
+
             buttons = WebDriverWait(driver, 5).until(
                 EC.presence_of_all_elements_located((By.TAG_NAME, "button"))
             )
+
             found = False
             for btn in buttons:
                 if btn.text.strip().lower() == "follow":
@@ -267,15 +269,19 @@ def follow_male_usernames(driver, usernames, max_to_follow=20):
                     time.sleep(0.5)
                     driver.execute_script("arguments[0].click();", btn)
                     save_followed_user(username)
+                    followed_this_round.append(username)
                     print(f"✅ Followed: {username}")
-                    like_recent_posts(driver, num_posts=random.randint(1, 2))
                     time.sleep(random.uniform(3.5, 6))
                     found = True
                     break
+
             if not found:
                 print(f"⚠️ No clickable follow button found: {username}")
+
         except Exception as e:
-            print(f"⚠️ Could not follow: {username} — {e}")
+            print(f"⚠️ Could not follow {username} — {e}")
+
+    return followed_this_round
 
 def like_recent_posts(driver, num_posts=2):
     try:
@@ -299,7 +305,6 @@ def like_recent_posts(driver, num_posts=2):
 
                 driver.get(post_url)
                 time.sleep(3)
-                driver.save_screenshot(f"debug_post_{liked + 1}.png")
 
                 # Wait for image and double-click to like
                 try:
@@ -311,7 +316,6 @@ def like_recent_posts(driver, num_posts=2):
                     actions.move_to_element(image).pause(0.5).double_click(image).perform()
 
                     print("❤️ Double-clicked image to like")
-                    driver.save_screenshot(f"liked_post_{liked + 1}.png")
                     liked += 1
 
                 except Exception as e:
@@ -352,16 +356,15 @@ def main():
     try:
         # login_to_instagram(driver)  # ← this is for actual access
         load_instagram_session(driver)  # ← Use this for testing
+        unfollow_old_users(driver)
+        go_to_target_profile(driver, TARGET_PROFILE)
+        open_followers_list(driver)
+        usernames = get_follower_usernames(driver, max_followers=200)
+        recently_followed = follow_male_usernames(driver, usernames)
         
-        test_like_specific_user(driver, username="fabio.pecora01", num_posts=2)
-
-
-        # unfollow_old_users(driver)
-        # go_to_target_profile(driver, TARGET_PROFILE)
-        # open_followers_list(driver)
-
-        # usernames = get_follower_usernames(driver, max_followers=200)
-        # follow_male_usernames(driver, usernames)
+         # ✅ Like 2 posts for each person just followed
+        for username in recently_followed:
+            test_like_specific_user(driver, username=username, num_posts=2)
 
         input("✅ Done! Press Enter to close the bot.")
     except Exception as e:
