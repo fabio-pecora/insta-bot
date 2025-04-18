@@ -6,6 +6,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
 import undetected_chromedriver as uc
 import pyautogui
 import os
@@ -283,7 +284,6 @@ def like_recent_posts(driver, num_posts=2):
         time.sleep(2)
 
         post_links = driver.find_elements(By.XPATH, "//a[contains(@href, '/p/')]")
-
         if not post_links:
             raise Exception("No post links found on profile")
 
@@ -298,48 +298,34 @@ def like_recent_posts(driver, num_posts=2):
                     continue
 
                 driver.get(post_url)
-                time.sleep(2)
+                time.sleep(3)
                 driver.save_screenshot(f"debug_post_{liked + 1}.png")
 
-                # Wait for buttons in the action bar
-                WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.XPATH, "//section//span/button"))
-                )
+                # Wait for image and double-click to like
+                try:
+                    image = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.XPATH, "//article//img"))
+                    )
 
-                like_buttons = driver.find_elements(By.XPATH, "//section//span/button")
-                found_like_btn = False
+                    actions = ActionChains(driver)
+                    actions.move_to_element(image).pause(0.5).double_click(image).perform()
 
-                for btn in like_buttons:
-                    try:
-                        svg = btn.find_element(By.XPATH, ".//*[name()='svg']")
-                        label = svg.get_attribute("aria-label")
-                        print(f"🧐 Found SVG: {label}")
+                    print("❤️ Double-clicked image to like")
+                    driver.save_screenshot(f"liked_post_{liked + 1}.png")
+                    liked += 1
 
-                        if label and label.lower() == "like":
-                            driver.execute_script("arguments[0].click();", btn)
-                            print("❤️ Liked a post")
-                            liked += 1
-                            found_like_btn = True
-                            break
-                        elif label and label.lower() == "unlike":
-                            print("💤 Post already liked. Skipping.")
-                            found_like_btn = True
-                            break
-                    except:
-                        continue
-
-                if not found_like_btn:
-                    print("⚠️ Couldn't find a like/unlike button on this post.")
+                except Exception as e:
+                    print(f"⚠️ Failed to double-click and like: {e}")
+                    continue
 
                 time.sleep(random.uniform(2, 4))
 
             except Exception as e:
-                print(f"⚠️ Failed to like a post: {e}")
+                print(f"⚠️ Failed to process post: {e}")
                 continue
 
     except Exception as e:
         print(f"⚠️ Could not find recent posts — {e}")
-
 
 
 
