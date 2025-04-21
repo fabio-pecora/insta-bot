@@ -333,13 +333,13 @@ def like_recent_posts(driver, num_posts=2):
 
 
 # test sendin msg to myself
-def send_dm(driver, username="fabio.pecora01", message_text="Hey! This is a test message from my bot 😄"):
+def send_dm(driver, username="fabio.pecora01", message_text="Hey! This is a test message from my bot "):
     try:
         print(f"✉️ Sending DM to @{username}...")
         driver.get(f"https://www.instagram.com/{username}/")
         time.sleep(4)
 
-        # Click the Message div
+        # Click the "Message" button
         message_button = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, "//div[text()='Message']"))
         )
@@ -347,7 +347,7 @@ def send_dm(driver, username="fabio.pecora01", message_text="Hey! This is a test
         print("💬 Clicked the Message button")
         time.sleep(3)
 
-        # Handle the popup
+        # Dismiss notification popup if it appears
         try:
             not_now_button = WebDriverWait(driver, 5).until(
                 EC.element_to_be_clickable((By.XPATH, "//button[text()='Not Now']"))
@@ -358,13 +358,14 @@ def send_dm(driver, username="fabio.pecora01", message_text="Hey! This is a test
         except:
             print("ℹ️ No notification popup appeared.")
 
-        # Find textarea and send message
-        textarea = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.TAG_NAME, "textarea"))
+        # Find the DM input field
+        message_input = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "div[role='textbox']"))
         )
-        textarea.send_keys(message_text)
+        message_input.click()
+        message_input.send_keys(message_text)
         time.sleep(1)
-        textarea.send_keys(Keys.ENTER)
+        message_input.send_keys(Keys.ENTER)
         print(f"✅ DM sent to @{username}!")
 
     except Exception as e:
