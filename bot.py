@@ -339,15 +339,26 @@ def send_dm(driver, username="fabio.pecora01", message_text="Hey! This is a test
         driver.get(f"https://www.instagram.com/{username}/")
         time.sleep(4)
 
-        # Find any <div> with the text 'Message'
+        # Click the Message div
         message_button = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, "//div[text()='Message']"))
         )
         driver.execute_script("arguments[0].click();", message_button)
         print("💬 Clicked the Message button")
-        time.sleep(4)
+        time.sleep(3)
 
-        # Find textarea for typing message
+        # Handle the popup
+        try:
+            not_now_button = WebDriverWait(driver, 5).until(
+                EC.element_to_be_clickable((By.XPATH, "//button[text()='Not Now']"))
+            )
+            not_now_button.click()
+            print("🔕 Dismissed notification popup.")
+            time.sleep(1)
+        except:
+            print("ℹ️ No notification popup appeared.")
+
+        # Find textarea and send message
         textarea = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.TAG_NAME, "textarea"))
         )
@@ -358,6 +369,7 @@ def send_dm(driver, username="fabio.pecora01", message_text="Hey! This is a test
 
     except Exception as e:
         print(f"⚠️ Failed to send DM to @{username} — {e}")
+
 
 
 
@@ -381,11 +393,11 @@ def main():
         # for username in recently_followed:
         #     test_like_specific_user(driver, username=username, num_posts=2)
 
-        # input("✅ Done! Press Enter to close the bot.")
+        
 
         send_dm(driver)
 
-
+        input("✅ Done! Press Enter to close the bot.")
     except Exception as e:
         print(f"🚨 Error: {e}")
     finally:
