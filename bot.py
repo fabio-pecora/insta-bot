@@ -332,41 +332,60 @@ def like_recent_posts(driver, num_posts=2):
         print(f"⚠️ Could not find recent posts — {e}")
 
 
-
-# testing!
-
-def test_like_specific_user(driver, username="fabio.pecora01", num_posts=2):
-    print(f"🔍 Visiting @{username} to like posts...")
+# test sendin msg to myself
+def send_dm(driver, username="fabio.pecora01", message_text="Hey! This is a test message from my bot 😄"):
     try:
+        print(f"✉️ Sending DM to @{username}...")
         driver.get(f"https://www.instagram.com/{username}/")
-        time.sleep(3)
-        like_recent_posts(driver, num_posts=num_posts)
-        print(f"✅ Done liking posts for @{username}")
+        time.sleep(4)
+
+        # Find any <div> with the text 'Message'
+        message_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//div[text()='Message']"))
+        )
+        driver.execute_script("arguments[0].click();", message_button)
+        print("💬 Clicked the Message button")
+        time.sleep(4)
+
+        # Find textarea for typing message
+        textarea = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.TAG_NAME, "textarea"))
+        )
+        textarea.send_keys(message_text)
+        time.sleep(1)
+        textarea.send_keys(Keys.ENTER)
+        print(f"✅ DM sent to @{username}!")
+
     except Exception as e:
-        print(f"⚠️ Failed to like posts for @{username} — {e}")
+        print(f"⚠️ Failed to send DM to @{username} — {e}")
 
 
 
 def main():
     options = uc.ChromeOptions()
     options.add_argument("--start-maximized")
+    
 
     driver = uc.Chrome(options=options)  # ✅ Only create it once here
 
     try:
         # login_to_instagram(driver)  # ← this is for actual access
         load_instagram_session(driver)  # ← Use this for testing
-        unfollow_old_users(driver)
-        go_to_target_profile(driver, TARGET_PROFILE)
-        open_followers_list(driver)
-        usernames = get_follower_usernames(driver, max_followers=200)
-        recently_followed = follow_male_usernames(driver, usernames)
+        # unfollow_old_users(driver)
+        # go_to_target_profile(driver, TARGET_PROFILE)
+        # open_followers_list(driver)
+        # usernames = get_follower_usernames(driver, max_followers=200)
+        # recently_followed = follow_male_usernames(driver, usernames)
         
-         # ✅ Like 2 posts for each person just followed
-        for username in recently_followed:
-            test_like_specific_user(driver, username=username, num_posts=2)
+        #  # ✅ Like 2 posts for each person just followed
+        # for username in recently_followed:
+        #     test_like_specific_user(driver, username=username, num_posts=2)
 
-        input("✅ Done! Press Enter to close the bot.")
+        # input("✅ Done! Press Enter to close the bot.")
+
+        send_dm(driver)
+
+
     except Exception as e:
         print(f"🚨 Error: {e}")
     finally:
