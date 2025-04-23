@@ -12,11 +12,12 @@ import pyautogui
 import os
 import random
 
-USERNAME = "george_jordan123456"
-PASSWORD = "ciaociaociaO1.."
+USERNAME = "bebesitahavoglia"
+PASSWORD = "HaVogLi41!__"
 TARGET_PROFILE = "lafederica.nazionale"
 FOLLOWED_USERS_FILE = 'followed_users.csv'
-
+ALL_TIME_FILE = 'all_time_followed.csv'
+SEXY_POST_LINK = "https://www.instagram.com/reel/DIMUVkdMQsb/?igsh=dDYzeTEybzRpdDBl"
 
 import json
 
@@ -98,9 +99,30 @@ def open_followers_list(driver):
     time.sleep(3)
 
 def save_followed_user(username):
+    now = datetime.now().strftime("%m/%d/%Y")
+
+    # First: check and update all-time file
+    if not os.path.exists(ALL_TIME_FILE):
+        open(ALL_TIME_FILE, 'w').close()
+
+    with open(ALL_TIME_FILE, mode='r+', newline='', encoding='utf-8') as all_time_file:
+        reader = csv.reader(all_time_file)
+        if any(row[0] == username for row in reader):
+            print(f"⏭️ Skipping {username} — already in all-time list")
+            return  # User already followed in the past, skip both files
+
+        # Go back to end of file to append if not already there
+        all_time_file.seek(0, os.SEEK_END)
+        writer = csv.writer(all_time_file)
+        writer.writerow([username])
+        print(f"📝 Added {username} to all-time list")
+
+    # Then: write to temp file for unfollow tracking
     with open(FOLLOWED_USERS_FILE, mode='a', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
-        writer.writerow([username, datetime.now().strftime("%m/%d/%Y")])
+        writer.writerow([username, now])
+        print(f"📅 Added {username} to current follow tracking list")
+
 
 def is_male_username(username):
     male_keywords = [
@@ -238,12 +260,20 @@ def unfollow_old_users(driver):
         writer = csv.writer(file)
         writer.writerows(rows)
 
+def already_followed(username):
+    if not os.path.exists(ALL_TIME_FILE):
+        return False
+    with open(ALL_TIME_FILE, mode='r', encoding='utf-8') as file:
+        reader = csv.reader(file)
+        return any(row[0] == username for row in reader)
+
+
 def follow_male_usernames(driver, usernames, max_to_follow=20):
     male_usernames = []
     followed_this_round = []
 
     for username in usernames:
-        if is_male_username(username):
+        if is_male_username(username) and not already_followed(username):
             male_usernames.append(username)
             print(f"✅ Queued male username: {username}")
         if len(male_usernames) >= max_to_follow:
@@ -283,8 +313,10 @@ def follow_male_usernames(driver, usernames, max_to_follow=20):
 
     return followed_this_round
 
-def like_recent_posts(driver, num_posts=2):
+def like_recent_posts(driver,username, num_posts=2):
     try:
+        driver.get(f"https://www.instagram.com/{username}/")
+        time.sleep(4)
         time.sleep(2)
         driver.execute_script("window.scrollTo(0, 500);")
         time.sleep(2)
@@ -333,16 +365,16 @@ def like_recent_posts(driver, num_posts=2):
 
 
 dm_messages = [
-    "Hey! Just dropping by to say hi",
-    "What's up! Hope you're having a good day!",
-    "Found your profile and thought I'd say hey!",
-    "Yo! How's it going?",
-    "Hey there! Just wanted to connect",
-    "Hope your week is going awesome!",
-    "Hi! Found your page through a follow",
-    "Hey! Nice vibe on your profile!",
-    "Wassup! Just checking in",
-    "Heyo! Hope you're doing well!"
+    f"You *need* to see this... {SEXY_POST_LINK}",
+    f"Just dropped something wild... {SEXY_POST_LINK}",
+    f"This one’s for you, babe → {SEXY_POST_LINK}",
+    f"Not safe for work  {SEXY_POST_LINK}",
+    f"You won't forget this one  {SEXY_POST_LINK}",
+    f"Been thinking about you... {SEXY_POST_LINK}",
+    f"My favorite post ever  {SEXY_POST_LINK}",
+    f"Click if you’re feeling risky  {SEXY_POST_LINK}",
+    f"Exclusive just for my favs {SEXY_POST_LINK}",
+    f"Bet you can't stop watching  {SEXY_POST_LINK}"
 ]
 
 def send_dm(driver, username="fabio.pecora01"):
@@ -379,6 +411,12 @@ def send_dm(driver, username="fabio.pecora01"):
         message_input.send_keys(Keys.ENTER)
         print(f"✅ DM sent to @{username}!")
 
+        # 🛑 Wait for the message to visually appear in the chat box before continuing
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, f"//*[contains(text(), '{message_text[:8]}')]"))
+        )
+        time.sleep(2.5)
+
     except Exception as e:
         print(f"⚠️ Failed to send DM to @{username} — {e}")
 
@@ -393,23 +431,28 @@ def main():
     driver = uc.Chrome(options=options)  # ✅ Only create it once here
 
     try:
-        # login_to_instagram(driver)  # ← this is for actual access
-        load_instagram_session(driver)  # ← Use this for testing
-        # unfollow_old_users(driver)
-        # go_to_target_profile(driver, TARGET_PROFILE)
-        # open_followers_list(driver)
-        # usernames = get_follower_usernames(driver, max_followers=200)
-        # recently_followed = follow_male_usernames(driver, usernames)
-        
-        #  # ✅ Like 2 posts for each person just followed
-        # for username in recently_followed:
-        #     test_like_specific_user(driver, username=username, num_posts=2)
+        load_instagram_session(driver)
+        # login_to_instagram(driver)
+        # unfollow_old_users(driver)  # Step 1: clean up
 
-        
+        go_to_target_profile(driver, TARGET_PROFILE)
+        open_followers_list(driver)
+        usernames = get_follower_usernames(driver, max_followers=200)
 
-        send_dm(driver)
+        # Step 2: follow 30 users only (no like/DM yet)
+        recently_followed = follow_male_usernames(driver, usernames, max_to_follow=5)
+
+        # Step 3: send DMs to just followed
+        for username in recently_followed:
+            send_dm(driver, username)
+            time.sleep(random.uniform(3, 6))
+
+        # Step 4: like 1 post for each
+        for username in recently_followed:
+            like_recent_posts(driver, username=username, num_posts=1)
 
         input("✅ Done! Press Enter to close the bot.")
+
     except Exception as e:
         print(f"🚨 Error: {e}")
     finally:
