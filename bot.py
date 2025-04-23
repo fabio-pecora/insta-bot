@@ -12,58 +12,53 @@ import pyautogui
 import os
 import random
 
-USERNAME = "bebesitahavoglia"
-PASSWORD = "HaVogLi41!__"
-TARGET_PROFILE = "lafederica.nazionale"
-FOLLOWED_USERS_FILE = 'followed_users.csv'
-ALL_TIME_FILE = 'all_time_followed.csv'
+
+
 SEXY_POST_LINK = "https://www.instagram.com/reel/DIMUVkdMQsb/?igsh=dDYzeTEybzRpdDBl"
 
 import json
 
-def load_instagram_session(driver):
-    driver.get("https://www.instagram.com/")
-    time.sleep(3)
+# def load_instagram_session(driver):
+#     driver.get("https://www.instagram.com/")
+#     time.sleep(3)
 
-    # Load cookies from file
-    if os.path.exists("instagram_cookies.json"):
-        with open("instagram_cookies.json", "r") as file:
-            cookies = json.load(file)
+#     # Load cookies from file
+#     if os.path.exists("instagram_cookies.json"):
+#         with open("instagram_cookies.json", "r") as file:
+#             cookies = json.load(file)
 
-        for cookie in cookies:
-            cookie_dict = {
-                "name": cookie.get("name"),
-                "value": cookie.get("value"),
-                "domain": cookie.get("domain"),
-                "path": cookie.get("path", "/"),
-                "secure": cookie.get("secure", False),
-                "httpOnly": cookie.get("httpOnly", False),
-            }
-            if "expiry" in cookie:
-                cookie_dict["expiry"] = cookie["expiry"]
-            try:
-                driver.add_cookie(cookie_dict)
-            except Exception as e:
-                print(f"⚠️ Skipped one cookie: {e}")
+#         for cookie in cookies:
+#             cookie_dict = {
+#                 "name": cookie.get("name"),
+#                 "value": cookie.get("value"),
+#                 "domain": cookie.get("domain"),
+#                 "path": cookie.get("path", "/"),
+#                 "secure": cookie.get("secure", False),
+#                 "httpOnly": cookie.get("httpOnly", False),
+#             }
+#             if "expiry" in cookie:
+#                 cookie_dict["expiry"] = cookie["expiry"]
+#             try:
+#                 driver.add_cookie(cookie_dict)
+#             except Exception as e:
+#                 print(f"⚠️ Skipped one cookie: {e}")
 
-        driver.get("https://www.instagram.com/")
-        time.sleep(3)
-        print("✅ Session cookies loaded successfully!")
-    else:
-        print("❌ Cookie file not found. Please export your cookies to 'instagram_cookies.json'")
-        input("⏸️ Press Enter to quit.")
-        driver.quit()
+#         driver.get("https://www.instagram.com/")
+#         time.sleep(3)
+#         print("✅ Session cookies loaded successfully!")
+#     else:
+#         print("❌ Cookie file not found. Please export your cookies to 'instagram_cookies.json'")
+#         input("⏸️ Press Enter to quit.")
+#         driver.quit()
 
 def human_typing(element, text):
     for char in text:
         element.send_keys(char)
         time.sleep(random.uniform(0.08, 0.22))
 
-
-def login_to_instagram(driver):
+def login_to_instagram(driver, username, password):
     driver.get("https://www.instagram.com/accounts/login/")
     
-    # Wait until username input is ready
     WebDriverWait(driver, 15).until(
         EC.presence_of_element_located((By.NAME, "username"))
     )
@@ -79,9 +74,9 @@ def login_to_instagram(driver):
     username_input = driver.find_element(By.NAME, "username")
     password_input = driver.find_element(By.NAME, "password")
 
-    human_typing(username_input, USERNAME)
+    human_typing(username_input, username)
     time.sleep(random.uniform(1, 1.5))
-    human_typing(password_input, PASSWORD)
+    human_typing(password_input, password)
     time.sleep(random.uniform(0.5, 1))
 
     password_input.send_keys(Keys.ENTER)
@@ -98,30 +93,30 @@ def open_followers_list(driver):
     followers_button.click()
     time.sleep(3)
 
-def save_followed_user(username):
+def save_followed_user(username, already_followed_file, followed_users_file):
     now = datetime.now().strftime("%m/%d/%Y")
 
-    # First: check and update all-time file
-    if not os.path.exists(ALL_TIME_FILE):
-        open(ALL_TIME_FILE, 'w').close()
+    # Create all-time file if it doesn't exist
+    if not os.path.exists(already_followed_file):
+        open(already_followed_file, 'w').close()
 
-    with open(ALL_TIME_FILE, mode='r+', newline='', encoding='utf-8') as all_time_file:
-        reader = csv.reader(all_time_file)
+    with open(already_followed_file, mode='r+', newline='', encoding='utf-8') as f:
+        reader = csv.reader(f)
         if any(row[0] == username for row in reader):
             print(f"⏭️ Skipping {username} — already in all-time list")
-            return  # User already followed in the past, skip both files
+            return  # Already followed before
 
-        # Go back to end of file to append if not already there
-        all_time_file.seek(0, os.SEEK_END)
-        writer = csv.writer(all_time_file)
+        f.seek(0, os.SEEK_END)
+        writer = csv.writer(f)
         writer.writerow([username])
         print(f"📝 Added {username} to all-time list")
 
-    # Then: write to temp file for unfollow tracking
-    with open(FOLLOWED_USERS_FILE, mode='a', newline='', encoding='utf-8') as file:
-        writer = csv.writer(file)
+    # Add to current session's file
+    with open(followed_users_file, mode='a', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
         writer.writerow([username, now])
         print(f"📅 Added {username} to current follow tracking list")
+
 
 
 def is_male_username(username):
@@ -143,7 +138,7 @@ def is_male_username(username):
     ]
     return any(name in username.lower() for name in male_keywords)
 
-def get_follower_usernames(driver, max_targets=15):
+def get_follower_usernames(driver, already_followed_file, max_targets=15):
     print("📜 Scrolling followers and collecting valid usernames...")
     try:
         wait = WebDriverWait(driver, 15)
@@ -153,6 +148,14 @@ def get_follower_usernames(driver, max_targets=15):
     except:
         driver.quit()
         return []
+
+    # helper function inside this one
+    def is_already_followed(username):
+        if not os.path.exists(already_followed_file):
+            return False
+        with open(already_followed_file, mode='r', encoding='utf-8') as file:
+            reader = csv.reader(file)
+            return any(row[0] == username for row in reader)
 
     usernames_seen = set()
     valid_targets = []
@@ -168,12 +171,11 @@ def get_follower_usernames(driver, max_targets=15):
                 if username and username not in usernames_seen:
                     usernames_seen.add(username)
                     print(f"✅ Found: {username}")
-                    if is_male_username(username) and not already_followed(username):
+                    if is_male_username(username) and not is_already_followed(username):
                         valid_targets.append(username)
                         print(f"✅ Queued male username: {username}")
                         if len(valid_targets) >= max_targets:
                             break
-        # Scroll only if we still need more
         pyautogui.moveTo(pyautogui.size().width / 2, pyautogui.size().height / 2)
         pyautogui.scroll(-300)
         scrolls += 1
@@ -183,13 +185,15 @@ def get_follower_usernames(driver, max_targets=15):
     return valid_targets
 
 
-def unfollow_old_users(driver):
+def unfollow_old_users(driver, base_dir):
     print("🧹 Checking for users to unfollow...")
-    if not os.path.exists(FOLLOWED_USERS_FILE):
+
+    followed_users_file = os.path.join(base_dir, "followed_users.csv")
+    if not os.path.exists(followed_users_file):
         return
 
     rows = []
-    with open(FOLLOWED_USERS_FILE, mode='r', newline='', encoding='utf-8') as file:
+    with open(followed_users_file, mode='r', newline='', encoding='utf-8') as file:
         reader = csv.reader(file)
         for row in reader:
             if len(row) == 2:
@@ -206,7 +210,6 @@ def unfollow_old_users(driver):
                         driver.get(f"https://www.instagram.com/{username}/")
                         time.sleep(4)
 
-                        # Step 1: Click the "Following" button
                         buttons = WebDriverWait(driver, 10).until(
                             EC.presence_of_all_elements_located((By.TAG_NAME, "button"))
                         )
@@ -220,19 +223,8 @@ def unfollow_old_users(driver):
                         driver.execute_script("arguments[0].click();", following_btn)
                         time.sleep(1.5)
 
-                        # testing what buttons we have
-                        # time.sleep(2)
-                        # buttons = driver.find_elements(By.TAG_NAME, "button")
-                        # print(f"🧩 Found {len(buttons)} buttons on screen after clicking 'Following':")
-                        # for idx, btn in enumerate(buttons):
-                        #     try:
-                        #         print(f"{idx+1}. '{btn.text}' - displayed: {btn.is_displayed()}")
-                        #     except:
-                        #         print(f"{idx+1}. [Could not read text]")
-
-                        # Try to find the Unfollow button in the dropdown menu
                         try:
-                            time.sleep(2)  # Let the dropdown render
+                            time.sleep(2)
                             possible_unfollow_elements = driver.find_elements(By.XPATH, "//*[contains(text(), 'Unfollow')]")
 
                             clicked = False
@@ -248,11 +240,6 @@ def unfollow_old_users(driver):
                         except Exception as e:
                             print(f"⚠️ Could not click 'Unfollow' button for {username} — {e}")
                             rows.append(row)
-                            print(f"❌ Unfollowed: {username}")
-                            continue   
-                        except Exception as e:
-                            print(f"⚠️ Could not click 'Unfollow' button for {username} — {e}")
-                            rows.append(row)
                             continue
                     except Exception as e:
                         print(f"⚠️ Could not unfollow {username} — {e}")
@@ -260,17 +247,23 @@ def unfollow_old_users(driver):
                         continue
             else:
                 rows.append(row)
-    # Rewrite CSV only for users still followed
-    with open(FOLLOWED_USERS_FILE, mode='w', newline='', encoding='utf-8') as file:
+
+    # Rewrite CSV with users still followed
+    with open(followed_users_file, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         writer.writerows(rows)
 
-def already_followed(username):
-    if not os.path.exists(ALL_TIME_FILE):
+
+def already_followed(username, base_dir):
+    all_time_file = os.path.join(base_dir, "already_followed.csv")
+
+    if not os.path.exists(all_time_file):
         return False
-    with open(ALL_TIME_FILE, mode='r', encoding='utf-8') as file:
+
+    with open(all_time_file, mode='r', encoding='utf-8') as file:
         reader = csv.reader(file)
         return any(row[0] == username for row in reader)
+
 
 def warm_up_before_follow(driver):
     try:
@@ -296,13 +289,21 @@ def warm_up_before_follow(driver):
     except Exception as e:
         print(f"⚠️ Failed to warm up before follow — {e}")
 
-def follow_male_usernames(driver, usernames, max_to_follow=15):
+def follow_male_usernames(driver, usernames, already_followed_file, followed_users_file, max_to_follow=15):
     followed_this_round = []
     targets = []
 
+    # Helper to check if someone is already followed (per account)
+    def is_already_followed(username):
+        if not os.path.exists(already_followed_file):
+            return False
+        with open(already_followed_file, mode='r', encoding='utf-8') as file:
+            reader = csv.reader(file)
+            return any(row[0] == username for row in reader)
+
     # ✅ Step 1: Filter just enough valid male usernames
     for username in usernames:
-        if is_male_username(username) and not already_followed(username):
+        if is_male_username(username) and not is_already_followed(username):
             targets.append(username)
             print(f"✅ Queued male username: {username}")
         if len(targets) >= max_to_follow:
@@ -328,7 +329,7 @@ def follow_male_usernames(driver, usernames, max_to_follow=15):
                     driver.execute_script("arguments[0].scrollIntoView(true);", btn)
                     time.sleep(0.5)
                     driver.execute_script("arguments[0].click();", btn)
-                    save_followed_user(username)
+                    save_followed_user(username, already_followed_file, followed_users_file)
                     followed_this_round.append(username)
                     print(f"✅ Followed: {username}")
                     time.sleep(random.uniform(5, 10))  # safer delay
@@ -342,6 +343,7 @@ def follow_male_usernames(driver, usernames, max_to_follow=15):
             print(f"⚠️ Could not follow {username} — {e}")
 
     return followed_this_round
+
 
 
 def like_recent_posts(driver,username, num_posts=2):
@@ -455,39 +457,59 @@ def send_dm(driver, username="fabio.pecora01"):
 
 
 
-def main():
+def run_bot_for_account(username, password, target_profile, max_to_follow):
+    # Define file paths per account
+    account_folder = f"accounts_data/{username}"
+    os.makedirs(account_folder, exist_ok=True)
+
+    followed_users_file = os.path.join(account_folder, "followed_users.csv")
+    already_followed_file = os.path.join(account_folder, "already_followed.csv")
+
+    # Chrome setup
     options = uc.ChromeOptions()
     options.add_argument("--start-maximized")
-    
-
-    driver = uc.Chrome(options=options)  # ✅ Only create it once here
+    driver = uc.Chrome(options=options)
 
     try:
-        load_instagram_session(driver)
-        # login_to_instagram(driver)
-        unfollow_old_users(driver)  # Step 1: clean up
-        go_to_target_profile(driver, TARGET_PROFILE)
-        open_followers_list(driver)  
-        usernames = get_follower_usernames(driver, max_targets=5)
-        recently_followed = follow_male_usernames(driver, usernames)
-        # Step 3: send DMs to just followed
-        for username in recently_followed:
-            send_dm(driver, username)
-            time.sleep(random.uniform(3, 6))
-        # Step 4: like 1 post for each
-        for username in recently_followed:
-            like_recent_posts(driver, username=username, num_posts=1)
+        # Use credentials to log in
+        login_to_instagram(driver, username, password)
 
-        input("✅ Done! Press Enter to close the bot.")
+        # Perform unfollow using local file
+        unfollow_old_users(driver, account_folder)
+
+        # Main bot actions
+        go_to_target_profile(driver, target_profile)
+        open_followers_list(driver)
+        usernames = get_follower_usernames(driver, already_followed_file, max_targets=max_to_follow)
+        followed = follow_male_usernames(
+            driver,
+            usernames,
+            already_followed_file,
+            followed_users_file,
+            max_to_follow=max_to_follow
+        )
+
+        for u in followed:
+            send_dm(driver, u)
+            time.sleep(random.uniform(3, 6))
+            like_recent_posts(driver, u, num_posts=1)
 
     except Exception as e:
-        print(f"🚨 Error: {e}")
+        print(f"❌ Error for {username}: {e}")
     finally:
-        try:
-            driver.quit()
-        except:
-            pass
+        driver.quit()
+
+def run_for_all_accounts():
+    with open('accounts.csv', newline='', encoding='utf-8') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            username = row['username']
+            password = row['password']
+            target = row['target_profile']
+            max_to_follow = int(row['max_to_follow'])
+
+            print(f"\n🔄 Running bot for {username} targeting {target}")
+            run_bot_for_account(username, password, target, max_to_follow)
 
 if __name__ == "__main__":
-    main()
-
+    run_for_all_accounts()
