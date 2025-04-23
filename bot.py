@@ -365,17 +365,18 @@ def like_recent_posts(driver,username, num_posts=2):
 
 
 dm_messages = [
-    f"You *need* to see this... {SEXY_POST_LINK}",
-    f"Just dropped something wild... {SEXY_POST_LINK}",
-    f"This one’s for you, babe → {SEXY_POST_LINK}",
-    f"Not safe for work  {SEXY_POST_LINK}",
-    f"You won't forget this one  {SEXY_POST_LINK}",
-    f"Been thinking about you... {SEXY_POST_LINK}",
-    f"My favorite post ever  {SEXY_POST_LINK}",
-    f"Click if you’re feeling risky  {SEXY_POST_LINK}",
-    f"Exclusive just for my favs {SEXY_POST_LINK}",
-    f"Bet you can't stop watching  {SEXY_POST_LINK}"
+    f"Devi assolutamente vedere questo... {SEXY_POST_LINK}",
+    f"Ho appena pubblicato qualcosa di piccante... {SEXY_POST_LINK}",
+    f"Questo è per te, amore → {SEXY_POST_LINK}",
+    f"Non è proprio da guardare al lavoro... {SEXY_POST_LINK}",
+    f"Questo non te lo dimenticherai <3 {SEXY_POST_LINK}",
+    f"Ti pensavo... guarda qui {SEXY_POST_LINK}",
+    f"È il mio post preferito <3 {SEXY_POST_LINK}",
+    f"Clicca solo se ti senti audace {SEXY_POST_LINK}",
+    f"Contenuto esclusivo solo per i miei preferiti {SEXY_POST_LINK}",
+    f"Scommetto che non riuscirai a smettere di guardarlo {SEXY_POST_LINK}"
 ]
+
 
 def send_dm(driver, username="fabio.pecora01"):
     try:
