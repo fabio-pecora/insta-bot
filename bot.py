@@ -272,6 +272,29 @@ def already_followed(username):
         reader = csv.reader(file)
         return any(row[0] == username for row in reader)
 
+def warm_up_before_follow(driver):
+    try:
+        # Scroll profile page (simulate interest)
+        scroll_depths = [500, 1000, 1500]
+        for depth in scroll_depths:
+            driver.execute_script(f"window.scrollTo(0, {depth});")
+            time.sleep(random.uniform(2, 4))
+        
+        # Try clicking on the first story/highlight if available
+        try:
+            story = WebDriverWait(driver, 3).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, "canvas[aria-label='User story ring']"))
+            )
+            driver.execute_script("arguments[0].click();", story)
+            print("👁️ Viewed story")
+            time.sleep(random.uniform(4, 6))  # let the story play briefly
+            pyautogui.press('esc')  # close story
+            time.sleep(1)
+        except:
+            print("ℹ️ No story/highlight found.")
+
+    except Exception as e:
+        print(f"⚠️ Failed to warm up before follow — {e}")
 
 def follow_male_usernames(driver, usernames, max_to_follow=15):
     followed_this_round = []
@@ -301,6 +324,7 @@ def follow_male_usernames(driver, usernames, max_to_follow=15):
             found = False
             for btn in buttons:
                 if btn.text.strip().lower() == "follow":
+                    warm_up_before_follow(driver)
                     driver.execute_script("arguments[0].scrollIntoView(true);", btn)
                     time.sleep(0.5)
                     driver.execute_script("arguments[0].click();", btn)
@@ -441,19 +465,15 @@ def main():
     try:
         load_instagram_session(driver)
         # login_to_instagram(driver)
-        # unfollow_old_users(driver)  # Step 1: clean up
-
+        unfollow_old_users(driver)  # Step 1: clean up
         go_to_target_profile(driver, TARGET_PROFILE)
-        open_followers_list(driver)
-        
+        open_followers_list(driver)  
         usernames = get_follower_usernames(driver, max_targets=5)
         recently_followed = follow_male_usernames(driver, usernames)
-
         # Step 3: send DMs to just followed
         for username in recently_followed:
             send_dm(driver, username)
             time.sleep(random.uniform(3, 6))
-
         # Step 4: like 1 post for each
         for username in recently_followed:
             like_recent_posts(driver, username=username, num_posts=1)
