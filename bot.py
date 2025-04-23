@@ -143,8 +143,8 @@ def is_male_username(username):
     ]
     return any(name in username.lower() for name in male_keywords)
 
-def get_follower_usernames(driver, max_followers=200):
-    print("📜 Scrolling followers and collecting usernames...")
+def get_follower_usernames(driver, max_targets=15):
+    print("📜 Scrolling followers and collecting valid usernames...")
     try:
         wait = WebDriverWait(driver, 15)
         modal = wait.until(EC.presence_of_element_located(
@@ -154,29 +154,34 @@ def get_follower_usernames(driver, max_followers=200):
         driver.quit()
         return []
 
-    usernames = set()
+    usernames_seen = set()
+    valid_targets = []
     scrolls = 0
     max_scrolls = 50
 
-    while len(usernames) < max_followers and scrolls < max_scrolls:
+    while len(valid_targets) < max_targets and scrolls < max_scrolls:
         links = modal.find_elements(By.TAG_NAME, "a")
         for link in links:
             href = link.get_attribute("href")
             if href and "/" in href:
                 username = href.split("/")[-2]
-                if username and username not in usernames:
-                    usernames.add(username)
+                if username and username not in usernames_seen:
+                    usernames_seen.add(username)
                     print(f"✅ Found: {username}")
-                    if len(usernames) >= max_followers:
-                        break
-        screen_width, screen_height = pyautogui.size()
-        pyautogui.moveTo(screen_width / 2, screen_height / 2)
+                    if is_male_username(username) and not already_followed(username):
+                        valid_targets.append(username)
+                        print(f"✅ Queued male username: {username}")
+                        if len(valid_targets) >= max_targets:
+                            break
+        # Scroll only if we still need more
+        pyautogui.moveTo(pyautogui.size().width / 2, pyautogui.size().height / 2)
         pyautogui.scroll(-300)
         scrolls += 1
         time.sleep(1.5)
 
-    print(f"🎉 Collected {len(usernames)} usernames.")
-    return list(usernames)
+    print(f"🎯 Collected {len(valid_targets)} valid male usernames.")
+    return valid_targets
+
 
 def unfollow_old_users(driver):
     print("🧹 Checking for users to unfollow...")
@@ -268,20 +273,22 @@ def already_followed(username):
         return any(row[0] == username for row in reader)
 
 
-def follow_male_usernames(driver, usernames, max_to_follow=20):
-    male_usernames = []
+def follow_male_usernames(driver, usernames, max_to_follow=15):
     followed_this_round = []
+    targets = []
 
+    # ✅ Step 1: Filter just enough valid male usernames
     for username in usernames:
         if is_male_username(username) and not already_followed(username):
-            male_usernames.append(username)
+            targets.append(username)
             print(f"✅ Queued male username: {username}")
-        if len(male_usernames) >= max_to_follow:
+        if len(targets) >= max_to_follow:
             break
 
-    print(f"🚀 Visiting {len(male_usernames)} male profiles and following them...")
+    print(f"🚀 Visiting {len(targets)} male profiles and following them...")
 
-    for username in male_usernames:
+    # ✅ Step 2: Follow them
+    for username in targets:
         try:
             driver.get(f"https://www.instagram.com/{username}/")
             time.sleep(3)
@@ -291,7 +298,6 @@ def follow_male_usernames(driver, usernames, max_to_follow=20):
             buttons = WebDriverWait(driver, 5).until(
                 EC.presence_of_all_elements_located((By.TAG_NAME, "button"))
             )
-
             found = False
             for btn in buttons:
                 if btn.text.strip().lower() == "follow":
@@ -301,7 +307,7 @@ def follow_male_usernames(driver, usernames, max_to_follow=20):
                     save_followed_user(username)
                     followed_this_round.append(username)
                     print(f"✅ Followed: {username}")
-                    time.sleep(random.uniform(3.5, 6))
+                    time.sleep(random.uniform(5, 10))  # safer delay
                     found = True
                     break
 
@@ -312,6 +318,7 @@ def follow_male_usernames(driver, usernames, max_to_follow=20):
             print(f"⚠️ Could not follow {username} — {e}")
 
     return followed_this_round
+
 
 def like_recent_posts(driver,username, num_posts=2):
     try:
@@ -438,10 +445,9 @@ def main():
 
         go_to_target_profile(driver, TARGET_PROFILE)
         open_followers_list(driver)
-        usernames = get_follower_usernames(driver, max_followers=200)
-
-        # Step 2: follow 30 users only (no like/DM yet)
-        recently_followed = follow_male_usernames(driver, usernames, max_to_follow=5)
+        
+        usernames = get_follower_usernames(driver, max_targets=5)
+        recently_followed = follow_male_usernames(driver, usernames)
 
         # Step 3: send DMs to just followed
         for username in recently_followed:
