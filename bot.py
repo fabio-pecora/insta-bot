@@ -434,19 +434,30 @@ def is_private_account(driver):
     return False
 
 
-def send_dm(driver, username, sexy_link):
-    dm_messages = [
-        f"Ciao amore, il mio account principale ha i messaggi bloccati ma volevo farti vedere questo video <3... {sexy_link}",
-        f"Ho appena pubblicato qualcosa di piccante... {sexy_link}",
-        f"Questo è per te, amore → {sexy_link}",
-        f"Non è proprio da guardare al lavoro... {sexy_link}",
-        f"Questo non te lo dimenticherai <3 {sexy_link}",
-        f"Ti pensavo... guarda qui {sexy_link}",
-        f"È il mio post preferito <3 {sexy_link}",
-        f"Clicca solo se ti senti audace {sexy_link}",
-        f"Contenuto esclusivo solo per i miei preferiti {sexy_link}",
-        f"Scommetto che non riuscirai a smettere di guardarlo {sexy_link}"
-    ]
+def send_dm(driver, username, sexy_link, language):
+    if language == "english":
+        dm_messages = [
+            f"I couldn't message you from my main account, but I really wanted you to see my latest reel… let me know what you think <3 {sexy_link}",
+            f"Hey! This is my backup account — just wanted to send you my latest reel because I really wanted you to see it <3 {sexy_link}",
+            f"Hi! My main account has some limits with DMs, but I really wanted to share my latest post with you, hope you like it <3 {sexy_link}",
+            f"Hey, sorry for messaging from this account, but I had to share my new reel with you! Let me know what you think <3 {sexy_link}",
+            f"Hi! This is my second account. I couldn’t reach you from my main, but I really wanted to send you my latest reel <3 {sexy_link}",
+            f"It’s not easy to stand out among so many… but you caught my eye. Here's my latest reel — hope you like it <3 {sexy_link}",
+            f"Hey, sorry if I'm writing from this profile — I couldn’t contact you from my main! Here’s my latest reel, would love to hear what you think <3 {sexy_link}",
+            f"Hey, you’re one of the few I'm sending this to! It’s my latest reel… hope it sends you good vibes <3 {sexy_link}"
+        ]
+
+    else:  # italian
+        dm_messages = [
+            f"Non riesco a scriverti dal mio profilo principale, ma volevo davvero mostrarti il mio ultimo reel… fammi sapere che ne pensi <3 {sexy_link}",
+            f"Hey! Questo è il mio profilo secondario, ti mando qui l’ultimo reel che ho pubblicato perché ci tenevo che lo vedessi <3 {sexy_link}",
+            f"Ciao! Il mio principale ha qualche limite con i DM, ma ci tenevo a farti vedere il mio ultimo contenuto, spero ti piaccia <3 {sexy_link}",
+            f"Ehi, scusa il profilo alternativo, ma volevo condividerti questo reel uscito da poco! Ti va di dirmi che ne pensi <3 {sexy_link}",
+            f"Ciao! Questo è il mio profilo secondario. Non riuscivo a scriverti dall’altro, ma ci tenevo a mandarti il mio ultimo reel <3 {sexy_link}",
+            f"Non è facile farsi notare tra tanti… ma tu mi sei sembrato speciale, così ti mando il mio ultimo reel sperando ti piaccia <3 {sexy_link}",
+            f"Ciao, scusami se ti scrivo da questo profilo, ma non riuscivo a contattarti dall’altro! Ecco il mio ultimo reel, fammi sapere se ti piace <3 {sexy_link}",
+            f"Hey, sei capitato tra i pochi a cui sto mandando questo! È il mio ultimo reel… fammi sapere se ti arriva vibrazione buona <3 {sexy_link}"
+        ]
 
     try:
         message_text = random.choice(dm_messages)
@@ -493,7 +504,7 @@ def send_dm(driver, username, sexy_link):
 
 
 
-def run_bot_for_account(username, password, target_profile, max_to_follow, sexy_link):
+def run_bot_for_account(username, password, target_profile, max_to_follow, sexy_link, language):
     # Define file paths per account
     account_folder = f"accounts_data/{username}"
     os.makedirs(account_folder, exist_ok=True)
@@ -547,6 +558,7 @@ def run_for_all_accounts():
             target = row['target_profile']
             max_to_follow = int(row['max_to_follow'])
             sexy_link = row['sexy_link']
+            language = row.get('language', 'italian')
 
             print(f"\n🔄 Running bot for {username} targeting {target}")
             run_bot_for_account(username, password, target, max_to_follow, sexy_link)
