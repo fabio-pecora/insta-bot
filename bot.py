@@ -18,38 +18,38 @@ SEXY_POST_LINK = "https://www.instagram.com/reel/DIMUVkdMQsb/?igsh=dDYzeTEybzRpd
 
 import json
 
-# def load_instagram_session(driver):
-#     driver.get("https://www.instagram.com/")
-#     time.sleep(3)
+def load_instagram_session(driver, username):
+    cookie_path = f"cookies/{username}.json"
+    driver.get("https://www.instagram.com/")
+    time.sleep(3)
 
-#     # Load cookies from file
-#     if os.path.exists("instagram_cookies.json"):
-#         with open("instagram_cookies.json", "r") as file:
-#             cookies = json.load(file)
+    if os.path.exists(cookie_path):
+        with open(cookie_path, "r") as file:
+            cookies = json.load(file)
+        for cookie in cookies:
+            cookie_dict = {
+                "name": cookie.get("name"),
+                "value": cookie.get("value"),
+                "domain": cookie.get("domain"),
+                "path": cookie.get("path", "/"),
+                "secure": cookie.get("secure", False),
+                "httpOnly": cookie.get("httpOnly", False),
+            }
+            if "expiry" in cookie:
+                cookie_dict["expiry"] = cookie["expiry"]
+            try:
+                driver.add_cookie(cookie_dict)
+            except Exception as e:
+                print(f"⚠️ Skipped one cookie: {e}")
 
-#         for cookie in cookies:
-#             cookie_dict = {
-#                 "name": cookie.get("name"),
-#                 "value": cookie.get("value"),
-#                 "domain": cookie.get("domain"),
-#                 "path": cookie.get("path", "/"),
-#                 "secure": cookie.get("secure", False),
-#                 "httpOnly": cookie.get("httpOnly", False),
-#             }
-#             if "expiry" in cookie:
-#                 cookie_dict["expiry"] = cookie["expiry"]
-#             try:
-#                 driver.add_cookie(cookie_dict)
-#             except Exception as e:
-#                 print(f"⚠️ Skipped one cookie: {e}")
+        driver.get("https://www.instagram.com/")
+        time.sleep(3)
+        print(f"✅ Cookies loaded for {username}")
+        return True
+    else:
+        print(f"❌ Cookie file not found for {username}.")
+        return False
 
-#         driver.get("https://www.instagram.com/")
-#         time.sleep(3)
-#         print("✅ Session cookies loaded successfully!")
-#     else:
-#         print("❌ Cookie file not found. Please export your cookies to 'instagram_cookies.json'")
-#         input("⏸️ Press Enter to quit.")
-#         driver.quit()
 
 def human_typing(element, text):
     for char in text:
@@ -79,8 +79,35 @@ def login_to_instagram(driver, username, password):
     human_typing(password_input, password)
     time.sleep(random.uniform(0.5, 1))
 
-    password_input.send_keys(Keys.ENTER)
-    time.sleep(5)
+    login_button = driver.find_element(By.XPATH, "//button[@type='submit']")
+    driver.execute_script("arguments[0].click();", login_button)
+
+    print("⏳ Waiting to detect if security verification is required...")
+
+    try:
+        # Wait up to 15 seconds to either:
+        # 1. Be redirected to the homepage (successful login)
+        # 2. Or a challenge appears (e.g., input field for verification code)
+        WebDriverWait(driver, 15).until_any(
+            EC.presence_of_element_located((By.XPATH, "//input[@name='verificationCode']")),  # Sometimes shows
+            EC.url_contains("challenge"),
+            EC.presence_of_element_located((By.XPATH, "//div[text()='Send Security Code']")),
+            EC.presence_of_element_located((By.XPATH, "//div[text()='Save Your Login Info?']")),
+            EC.presence_of_element_located((By.XPATH, "//div[contains(text(), 'Home')]")),
+        )
+    except:
+        pass
+
+    # Check URL and page content for signs of verification
+    # if "challenge" in driver.current_url or "security" in driver.page_source.lower():
+    #     print("🔐 Instagram is asking for verification (code or challenge page).")
+    #     print("👉 Please complete the verification manually in the browser window.")
+    #     input("⏸️ Press Enter *after* you finish the verification and are logged in... ")
+    #     time.sleep(3)
+    # else:
+    #     print("✅ Logged in successfully.")
+
+
 
 def go_to_target_profile(driver, profile_username):
     driver.get(f"https://www.instagram.com/{profile_username}/")
@@ -472,7 +499,10 @@ def run_bot_for_account(username, password, target_profile, max_to_follow):
 
     try:
         # Use credentials to log in
-        login_to_instagram(driver, username, password)
+        if not load_instagram_session(driver, username):
+            print(f"🔐 Falling back to password login for {username}")
+            login_to_instagram(driver, username, password)
+
 
         # Perform unfollow using local file
         unfollow_old_users(driver, account_folder)

@@ -1,21 +1,7 @@
 [
     {
         "domain": ".instagram.com",
-        "expirationDate": 1776970079,
-        "hostOnly": false,
-        "httpOnly": false,
-        "name": "ajs_anonymous_id",
-        "path": "/",
-        "sameSite": "unspecified",
-        "secure": true,
-        "session": false,
-        "storeId": "0",
-        "value": "%2268ecf1e4-73e5-4f7e-8570-cbb445cfdd30%22",
-        "id": 1
-    },
-    {
-        "domain": ".instagram.com",
-        "expirationDate": 1779994066.308481,
+        "expirationDate": 1780159576.503888,
         "hostOnly": false,
         "httpOnly": false,
         "name": "csrftoken",
@@ -24,8 +10,8 @@
         "secure": true,
         "session": false,
         "storeId": "0",
-        "value": "kh5Hf7NUozcwOmsG4voS7mZotPMke0Ts",
-        "id": 2
+        "value": "aOPKv2NNZobS064AT0MpRkKJ6bvoKtvx",
+        "id": 1
     },
     {
         "domain": ".instagram.com",
@@ -39,11 +25,11 @@
         "session": false,
         "storeId": "0",
         "value": "ju3_ZzGv-5__1hu7do2jSX3s",
-        "id": 3
+        "id": 2
     },
     {
         "domain": ".instagram.com",
-        "expirationDate": 1746038858,
+        "expirationDate": 1746204350,
         "hostOnly": false,
         "httpOnly": false,
         "name": "dpr",
@@ -53,11 +39,11 @@
         "session": false,
         "storeId": "0",
         "value": "0.75",
-        "id": 4
+        "id": 3
     },
     {
         "domain": ".instagram.com",
-        "expirationDate": 1753210066.308971,
+        "expirationDate": 1753375576.504038,
         "hostOnly": false,
         "httpOnly": false,
         "name": "ds_user_id",
@@ -67,7 +53,7 @@
         "session": false,
         "storeId": "0",
         "value": "62842260064",
-        "id": 5
+        "id": 4
     },
     {
         "domain": ".instagram.com",
@@ -81,7 +67,7 @@
         "session": false,
         "storeId": "0",
         "value": "base_domain=.instagram.com",
-        "id": 6
+        "id": 5
     },
     {
         "domain": ".instagram.com",
@@ -95,7 +81,7 @@
         "session": false,
         "storeId": "0",
         "value": "063D3FA9-DD1E-4B8C-9899-835DF05881E0",
-        "id": 7
+        "id": 6
     },
     {
         "domain": ".instagram.com",
@@ -109,7 +95,7 @@
         "session": false,
         "storeId": "0",
         "value": "1",
-        "id": 8
+        "id": 7
     },
     {
         "domain": ".instagram.com",
@@ -123,7 +109,7 @@
         "session": false,
         "storeId": "0",
         "value": "Z79wQgALAAFYDfwm6wysY23qCRTs",
-        "id": 9
+        "id": 8
     },
     {
         "domain": ".instagram.com",
@@ -137,7 +123,7 @@
         "session": false,
         "storeId": "0",
         "value": "1",
-        "id": 10
+        "id": 9
     },
     {
         "domain": ".instagram.com",
@@ -151,7 +137,7 @@
         "session": false,
         "storeId": "0",
         "value": "1",
-        "id": 11
+        "id": 10
     },
     {
         "domain": ".instagram.com",
@@ -163,12 +149,12 @@
         "secure": true,
         "session": true,
         "storeId": "0",
-        "value": "\"CCO\\05462842260064\\0541776970066:01f770d85a06923518e468bf3c9af83a94641cd34e873515c4ca363814adad107176bd7f\"",
-        "id": 12
+        "value": "\"NHA\\05462842260064\\0541777135577:01f7e92a0e6207caeedd1d960365c0098851a30e2b245c169f22ef05ff039e00c99f933e\"",
+        "id": 11
     },
     {
         "domain": ".instagram.com",
-        "expirationDate": 1776970057.164541,
+        "expirationDate": 1777135549.035871,
         "hostOnly": false,
         "httpOnly": true,
         "name": "sessionid",
@@ -177,12 +163,12 @@
         "secure": true,
         "session": false,
         "storeId": "0",
-        "value": "62842260064%3ADne2j8uczzpVs5%3A13%3AAYdouNSqmDQoX0KYmt2qoiinM6Lxs8pVnHwbTv2-uw",
-        "id": 13
+        "value": "62842260064%3A1olWmZH4niHX3k%3A14%3AAYdMA4Rs8vzE8rM-9lmaU1w5pF7pisJld6mzu-0oAg",
+        "id": 12
     },
     {
         "domain": ".instagram.com",
-        "expirationDate": 1746038859,
+        "expirationDate": 1746204350,
         "hostOnly": false,
         "httpOnly": false,
         "name": "wd",
@@ -192,6 +178,6 @@
         "session": false,
         "storeId": "0",
         "value": "2560x1385",
-        "id": 14
+        "id": 13
     }
     ]
