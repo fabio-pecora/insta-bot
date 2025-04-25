@@ -1,7 +1,7 @@
 [
     {
         "domain": ".instagram.com",
-        "expirationDate": 1780159398.81671,
+        "expirationDate": 1780165987.890357,
         "hostOnly": false,
         "httpOnly": false,
         "name": "csrftoken",
@@ -10,7 +10,7 @@
         "secure": true,
         "session": false,
         "storeId": "0",
-        "value": "IGotrecHSPKBXsKS5VqKQB4z4TDB5BzW",
+        "value": "eSwlv91gpniKw8lDVKhDq5oQykHc8JD3",
         "id": 1
     },
     {
@@ -29,7 +29,7 @@
     },
     {
         "domain": ".instagram.com",
-        "expirationDate": 1746203649,
+        "expirationDate": 1746210766,
         "hostOnly": false,
         "httpOnly": false,
         "name": "dpr",
@@ -43,7 +43,7 @@
     },
     {
         "domain": ".instagram.com",
-        "expirationDate": 1753375398.817299,
+        "expirationDate": 1753381987.890532,
         "hostOnly": false,
         "httpOnly": false,
         "name": "ds_user_id",
@@ -149,12 +149,12 @@
         "secure": true,
         "session": true,
         "storeId": "0",
-        "value": "\"NHA\\05473829863852\\0541777135400:01f7c76488b6802b413363bbe39cc1dca65f8c0f64ea73656cea712ccb51b2d4e8bc3784\"",
+        "value": "\"NHA\\05473829863852\\0541777141987:01f7b98be99c3737f34d1216e5da1a5a73403e2954161268aa7e3aa49a92a1ccd327bb20\"",
         "id": 11
     },
     {
         "domain": ".instagram.com",
-        "expirationDate": 1777132433.661765,
+        "expirationDate": 1777141961.805359,
         "hostOnly": false,
         "httpOnly": true,
         "name": "sessionid",
@@ -163,12 +163,12 @@
         "secure": true,
         "session": false,
         "storeId": "0",
-        "value": "73829863852%3ASZ79kzLKUesIdD%3A4%3AAYfZVdjWA2D7-z9R70OVA9IUSRSfWgsHZnUKxVoJUA",
+        "value": "73829863852%3ADy9k328IgPouos%3A27%3AAYc1525NfPZJQnNNaVy744dJdZl4eEkPJXoo7WFeSg",
         "id": 12
     },
     {
         "domain": ".instagram.com",
-        "expirationDate": 1746203649,
+        "expirationDate": 1746210766,
         "hostOnly": false,
         "httpOnly": false,
         "name": "wd",
