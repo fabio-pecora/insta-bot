@@ -12,10 +12,6 @@ import pyautogui
 import os
 import random
 
-
-
-SEXY_POST_LINK = "https://www.instagram.com/reel/DIMUVkdMQsb/?igsh=dDYzeTEybzRpdDBl"
-
 import json
 
 def load_instagram_session(driver, username):
@@ -425,7 +421,7 @@ def like_recent_posts(driver,username, num_posts=2):
 
 
 dm_messages = [
-    f"Devi assolutamente vedere questo... {SEXY_POST_LINK}",
+    f"Ciao amore, il mio account principale ha i messaggi bloccati ma volevo farti vedere questo video <3... {SEXY_POST_LINK}",
     f"Ho appena pubblicato qualcosa di piccante... {SEXY_POST_LINK}",
     f"Questo è per te, amore → {SEXY_POST_LINK}",
     f"Non è proprio da guardare al lavoro... {SEXY_POST_LINK}",
@@ -537,6 +533,7 @@ def run_for_all_accounts():
             password = row['password']
             target = row['target_profile']
             max_to_follow = int(row['max_to_follow'])
+            sexy_link = row['sexy_link']
 
             print(f"\n🔄 Running bot for {username} targeting {target}")
             run_bot_for_account(username, password, target, max_to_follow)
