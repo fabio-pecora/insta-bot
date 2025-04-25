@@ -161,7 +161,7 @@ def is_male_username(username):
     ]
     return any(name in username.lower() for name in male_keywords)
 
-def get_follower_usernames(driver, already_followed_file, max_targets=15):
+def get_follower_usernames(driver, already_followed_file, max_targets=15, language="italian"):
     print("📜 Scrolling followers and collecting valid usernames...")
     try:
         wait = WebDriverWait(driver, 15)
@@ -183,7 +183,8 @@ def get_follower_usernames(driver, already_followed_file, max_targets=15):
     usernames_seen = set()
     valid_targets = []
     scrolls = 0
-    max_scrolls = 50
+    # keep low or instagram suspects
+    max_scrolls = 60
 
     while len(valid_targets) < max_targets and scrolls < max_scrolls:
         links = modal.find_elements(By.TAG_NAME, "a")
@@ -194,17 +195,26 @@ def get_follower_usernames(driver, already_followed_file, max_targets=15):
                 if username and username not in usernames_seen:
                     usernames_seen.add(username)
                     print(f"✅ Found: {username}")
-                    if is_male_username(username) and not is_already_followed(username):
-                        valid_targets.append(username)
-                        print(f"✅ Queued male username: {username}")
-                        if len(valid_targets) >= max_targets:
-                            break
+
+                    if language == "italian":
+                        # Only queue males for italian accounts
+                        if is_male_username(username) and not is_already_followed(username):
+                            valid_targets.append(username)
+                            print(f"✅ Queued male username: {username}")
+                    else:
+                        # Queue everyone for english accounts
+                        if not is_already_followed(username):
+                            valid_targets.append(username)
+                            print(f"✅ Queued username: {username}")
+
+                    if len(valid_targets) >= max_targets:
+                        break
         pyautogui.moveTo(pyautogui.size().width / 2, pyautogui.size().height / 2)
         pyautogui.scroll(-300)
         scrolls += 1
         time.sleep(1.5)
 
-    print(f"🎯 Collected {len(valid_targets)} valid male usernames.")
+    print(f"🎯 Collected {len(valid_targets)} valid usernames.")
     return valid_targets
 
 
@@ -561,7 +571,7 @@ def run_for_all_accounts():
             language = row.get('language', 'italian')
 
             print(f"\n🔄 Running bot for {username} targeting {target}")
-            run_bot_for_account(username, password, target, max_to_follow, sexy_link)
+            run_bot_for_account(username, password, target, max_to_follow, sexy_link, language)
 
 
 if __name__ == "__main__":
