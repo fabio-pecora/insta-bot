@@ -342,6 +342,10 @@ def follow_male_usernames(driver, usernames, already_followed_file, followed_use
             driver.execute_script("window.scrollTo(0, 0);")
             time.sleep(1)
 
+            if is_private_account(driver):
+                print(f"🔒 Skipping {username} — Private account")
+                continue  # skip this user, don't try to follow or DM or like!
+
             buttons = WebDriverWait(driver, 5).until(
                 EC.presence_of_all_elements_located((By.TAG_NAME, "button"))
             )
@@ -364,8 +368,8 @@ def follow_male_usernames(driver, usernames, already_followed_file, followed_use
 
         except Exception as e:
             print(f"⚠️ Could not follow {username} — {e}")
-
     return followed_this_round
+
 
 
 
@@ -420,21 +424,30 @@ def like_recent_posts(driver,username, num_posts=2):
         print(f"⚠️ Could not find recent posts — {e}")
 
 
-dm_messages = [
-    f"Ciao amore, il mio account principale ha i messaggi bloccati ma volevo farti vedere questo video <3... {SEXY_POST_LINK}",
-    f"Ho appena pubblicato qualcosa di piccante... {SEXY_POST_LINK}",
-    f"Questo è per te, amore → {SEXY_POST_LINK}",
-    f"Non è proprio da guardare al lavoro... {SEXY_POST_LINK}",
-    f"Questo non te lo dimenticherai <3 {SEXY_POST_LINK}",
-    f"Ti pensavo... guarda qui {SEXY_POST_LINK}",
-    f"È il mio post preferito <3 {SEXY_POST_LINK}",
-    f"Clicca solo se ti senti audace {SEXY_POST_LINK}",
-    f"Contenuto esclusivo solo per i miei preferiti {SEXY_POST_LINK}",
-    f"Scommetto che non riuscirai a smettere di guardarlo {SEXY_POST_LINK}"
-]
+def is_private_account(driver):
+    try:
+        private_element = driver.find_element(By.XPATH, "//*[contains(text(), 'This account is private')]")
+        if private_element.is_displayed():
+            return True
+    except:
+        pass
+    return False
 
 
-def send_dm(driver, username="fabio.pecora01"):
+def send_dm(driver, username, sexy_link):
+    dm_messages = [
+        f"Ciao amore, il mio account principale ha i messaggi bloccati ma volevo farti vedere questo video <3... {sexy_link}",
+        f"Ho appena pubblicato qualcosa di piccante... {sexy_link}",
+        f"Questo è per te, amore → {sexy_link}",
+        f"Non è proprio da guardare al lavoro... {sexy_link}",
+        f"Questo non te lo dimenticherai <3 {sexy_link}",
+        f"Ti pensavo... guarda qui {sexy_link}",
+        f"È il mio post preferito <3 {sexy_link}",
+        f"Clicca solo se ti senti audace {sexy_link}",
+        f"Contenuto esclusivo solo per i miei preferiti {sexy_link}",
+        f"Scommetto che non riuscirai a smettere di guardarlo {sexy_link}"
+    ]
+
     try:
         message_text = random.choice(dm_messages)
         print(f"✉️ Sending DM to @{username} — \"{message_text}\"")
@@ -468,7 +481,6 @@ def send_dm(driver, username="fabio.pecora01"):
         message_input.send_keys(Keys.ENTER)
         print(f"✅ DM sent to @{username}!")
 
-        # 🛑 Wait for the message to visually appear in the chat box before continuing
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.XPATH, f"//*[contains(text(), '{message_text[:8]}')]"))
         )
@@ -480,7 +492,8 @@ def send_dm(driver, username="fabio.pecora01"):
 
 
 
-def run_bot_for_account(username, password, target_profile, max_to_follow):
+
+def run_bot_for_account(username, password, target_profile, max_to_follow, sexy_link):
     # Define file paths per account
     account_folder = f"accounts_data/{username}"
     os.makedirs(account_folder, exist_ok=True)
@@ -516,7 +529,7 @@ def run_bot_for_account(username, password, target_profile, max_to_follow):
         )
 
         for u in followed:
-            send_dm(driver, u)
+            send_dm(driver, u, sexy_link)
             time.sleep(random.uniform(3, 6))
             like_recent_posts(driver, u, num_posts=1)
 
@@ -536,7 +549,8 @@ def run_for_all_accounts():
             sexy_link = row['sexy_link']
 
             print(f"\n🔄 Running bot for {username} targeting {target}")
-            run_bot_for_account(username, password, target, max_to_follow)
+            run_bot_for_account(username, password, target, max_to_follow, sexy_link)
+
 
 if __name__ == "__main__":
     run_for_all_accounts()
