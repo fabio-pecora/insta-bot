@@ -219,72 +219,62 @@ def get_follower_usernames(driver, already_followed_file, max_targets=15, langua
 
 
 def unfollow_old_users(driver, base_dir):
-    print("🧹 Checking for users to unfollow...")
+    print("🧹 Randomly unfollowing 15–20 users...")
 
     followed_users_file = os.path.join(base_dir, "followed_users.csv")
     if not os.path.exists(followed_users_file):
         return
 
-    rows = []
     with open(followed_users_file, mode='r', newline='', encoding='utf-8') as file:
-        reader = csv.reader(file)
-        for row in reader:
-            if len(row) == 2:
-                username, date_str = row
-                try:
-                    follow_date = datetime.strptime(date_str, "%m/%d/%Y")
-                except ValueError:
-                    print(f"⚠️ Invalid date format for {username}: {date_str}")
-                    rows.append(row)
-                    continue
+        rows = [row for row in csv.reader(file) if len(row) == 2]
 
-                if datetime.now() - follow_date >= timedelta(days=2):
-                    try:
-                        driver.get(f"https://www.instagram.com/{username}/")
-                        time.sleep(4)
+    # Pick up to 20 random users to unfollow
+    num_to_unfollow = min(random.randint(15, 20), len(rows))
+    rows_to_unfollow = random.sample(rows, num_to_unfollow) if rows else []
 
-                        buttons = WebDriverWait(driver, 10).until(
-                            EC.presence_of_all_elements_located((By.TAG_NAME, "button"))
-                        )
-                        following_btn = next((btn for btn in buttons if "following" in btn.text.strip().lower()), None)
+    still_followed = []
 
-                        if not following_btn:
-                            raise Exception("No 'Following' button found")
+    for username, date_str in rows:
+        if [username, date_str] not in rows_to_unfollow:
+            still_followed.append([username, date_str])
+            continue
 
-                        driver.execute_script("arguments[0].scrollIntoView(true);", following_btn)
-                        time.sleep(0.5)
-                        driver.execute_script("arguments[0].click();", following_btn)
-                        time.sleep(1.5)
+        try:
+            driver.get(f"https://www.instagram.com/{username}/")
+            time.sleep(4)
 
-                        try:
-                            time.sleep(2)
-                            possible_unfollow_elements = driver.find_elements(By.XPATH, "//*[contains(text(), 'Unfollow')]")
+            buttons = WebDriverWait(driver, 10).until(
+                EC.presence_of_all_elements_located((By.TAG_NAME, "button"))
+            )
+            following_btn = next((btn for btn in buttons if "following" in btn.text.strip().lower()), None)
 
-                            clicked = False
-                            for el in possible_unfollow_elements:
-                                if el.is_displayed():
-                                    print(f"✅ Found unfollow element: '{el.text.strip()}'")
-                                    driver.execute_script("arguments[0].click();", el)
-                                    clicked = True
-                                    print(f"❌ Unfollowed: {username}")
-                                    break
-                            if not clicked:
-                                raise Exception("Unfollow button not found or not visible.")
-                        except Exception as e:
-                            print(f"⚠️ Could not click 'Unfollow' button for {username} — {e}")
-                            rows.append(row)
-                            continue
-                    except Exception as e:
-                        print(f"⚠️ Could not unfollow {username} — {e}")
-                        rows.append(row)
-                        continue
+            if not following_btn:
+                raise Exception("No 'Following' button found")
+
+            driver.execute_script("arguments[0].scrollIntoView(true);", following_btn)
+            time.sleep(0.5)
+            driver.execute_script("arguments[0].click();", following_btn)
+            time.sleep(1.5)
+
+            # Click the unfollow confirm
+            possible_unfollow_elements = driver.find_elements(By.XPATH, "//*[contains(text(), 'Unfollow')]")
+            for el in possible_unfollow_elements:
+                if el.is_displayed():
+                    driver.execute_script("arguments[0].click();", el)
+                    print(f"❌ Unfollowed: {username}")
+                    break
             else:
-                rows.append(row)
+                raise Exception("Unfollow confirmation not found")
 
-    # Rewrite CSV with users still followed
+        except Exception as e:
+            print(f"⚠️ Could not unfollow {username} — {e}")
+            still_followed.append([username, date_str])
+
+    # Save remaining users
     with open(followed_users_file, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
-        writer.writerows(rows)
+        writer.writerows(still_followed)
+
 
 
 def already_followed(username, base_dir):
@@ -322,11 +312,10 @@ def warm_up_before_follow(driver):
     except Exception as e:
         print(f"⚠️ Failed to warm up before follow — {e}")
 
-def follow_male_usernames(driver, usernames, already_followed_file, followed_users_file, max_to_follow=15):
+def follow_users(driver, usernames, already_followed_file, followed_users_file, max_to_follow=15, language="italian"):
     followed_this_round = []
     targets = []
 
-    # Helper to check if someone is already followed (per account)
     def is_already_followed(username):
         if not os.path.exists(already_followed_file):
             return False
@@ -334,17 +323,23 @@ def follow_male_usernames(driver, usernames, already_followed_file, followed_use
             reader = csv.reader(file)
             return any(row[0] == username for row in reader)
 
-    # ✅ Step 1: Filter just enough valid male usernames
+    # ✅ Step 1: filter usernames based on language setting
     for username in usernames:
-        if is_male_username(username) and not is_already_followed(username):
-            targets.append(username)
-            print(f"✅ Queued male username: {username}")
+        if language == "italian":
+            if is_male_username(username) and not is_already_followed(username):
+                targets.append(username)
+                print(f"✅ Queued male username: {username}")
+        else:
+            if not is_already_followed(username):
+                targets.append(username)
+                print(f"✅ Queued username: {username}")
+
         if len(targets) >= max_to_follow:
             break
 
-    print(f"🚀 Visiting {len(targets)} male profiles and following them...")
+    print(f"🚀 Visiting {len(targets)} profiles and following them...")
 
-    # ✅ Step 2: Follow them
+    # ✅ Step 2: visit and follow
     for username in targets:
         try:
             driver.get(f"https://www.instagram.com/{username}/")
@@ -354,7 +349,7 @@ def follow_male_usernames(driver, usernames, already_followed_file, followed_use
 
             if is_private_account(driver):
                 print(f"🔒 Skipping {username} — Private account")
-                continue  # skip this user, don't try to follow or DM or like!
+                continue
 
             buttons = WebDriverWait(driver, 5).until(
                 EC.presence_of_all_elements_located((By.TAG_NAME, "button"))
@@ -369,7 +364,7 @@ def follow_male_usernames(driver, usernames, already_followed_file, followed_use
                     save_followed_user(username, already_followed_file, followed_users_file)
                     followed_this_round.append(username)
                     print(f"✅ Followed: {username}")
-                    time.sleep(random.uniform(5, 10))  # safer delay
+                    time.sleep(random.uniform(5, 10))
                     found = True
                     break
 
@@ -378,9 +373,8 @@ def follow_male_usernames(driver, usernames, already_followed_file, followed_use
 
         except Exception as e:
             print(f"⚠️ Could not follow {username} — {e}")
+
     return followed_this_round
-
-
 
 
 def like_recent_posts(driver,username, num_posts=2):
@@ -443,34 +437,18 @@ def is_private_account(driver):
         pass
     return False
 
+def load_dm_messages():
+    with open("dm_messages.json", encoding='utf-8') as f:
+        return json.load(f)
+
+
 
 def send_dm(driver, username, sexy_link, language):
-    if language == "english":
-        dm_messages = [
-            f"I couldn't message you from my main account, but I really wanted you to see my latest reel… let me know what you think <3 {sexy_link}",
-            f"Hey! This is my backup account — just wanted to send you my latest reel because I really wanted you to see it <3 {sexy_link}",
-            f"Hi! My main account has some limits with DMs, but I really wanted to share my latest post with you, hope you like it <3 {sexy_link}",
-            f"Hey, sorry for messaging from this account, but I had to share my new reel with you! Let me know what you think <3 {sexy_link}",
-            f"Hi! This is my second account. I couldn’t reach you from my main, but I really wanted to send you my latest reel <3 {sexy_link}",
-            f"It’s not easy to stand out among so many… but you caught my eye. Here's my latest reel — hope you like it <3 {sexy_link}",
-            f"Hey, sorry if I'm writing from this profile — I couldn’t contact you from my main! Here’s my latest reel, would love to hear what you think <3 {sexy_link}",
-            f"Hey, you’re one of the few I'm sending this to! It’s my latest reel… hope it sends you good vibes <3 {sexy_link}"
-        ]
-
-    else:  # italian
-        dm_messages = [
-            f"Non riesco a scriverti dal mio profilo principale, ma volevo davvero mostrarti il mio ultimo reel… fammi sapere che ne pensi <3 {sexy_link}",
-            f"Hey! Questo è il mio profilo secondario, ti mando qui l’ultimo reel che ho pubblicato perché ci tenevo che lo vedessi <3 {sexy_link}",
-            f"Ciao! Il mio principale ha qualche limite con i DM, ma ci tenevo a farti vedere il mio ultimo contenuto, spero ti piaccia <3 {sexy_link}",
-            f"Ehi, scusa il profilo alternativo, ma volevo condividerti questo reel uscito da poco! Ti va di dirmi che ne pensi <3 {sexy_link}",
-            f"Ciao! Questo è il mio profilo secondario. Non riuscivo a scriverti dall’altro, ma ci tenevo a mandarti il mio ultimo reel <3 {sexy_link}",
-            f"Non è facile farsi notare tra tanti… ma tu mi sei sembrato speciale, così ti mando il mio ultimo reel sperando ti piaccia <3 {sexy_link}",
-            f"Ciao, scusami se ti scrivo da questo profilo, ma non riuscivo a contattarti dall’altro! Ecco il mio ultimo reel, fammi sapere se ti piace <3 {sexy_link}",
-            f"Hey, sei capitato tra i pochi a cui sto mandando questo! È il mio ultimo reel… fammi sapere se ti arriva vibrazione buona <3 {sexy_link}"
-        ]
-
+    all_messages = load_dm_messages()
+    dm_templates = all_messages.get(language, all_messages["english"])
+    
     try:
-        message_text = random.choice(dm_messages)
+        message_text = random.choice(dm_templates).replace("{link}", sexy_link)
         print(f"✉️ Sending DM to @{username} — \"{message_text}\"")
 
         driver.get(f"https://www.instagram.com/{username}/")
@@ -525,7 +503,8 @@ def run_bot_for_account(username, password, target_profile, max_to_follow, sexy_
     # Chrome setup
     options = uc.ChromeOptions()
     options.add_argument("--start-maximized")
-    driver = uc.Chrome(options=options)
+    driver = uc.Chrome(version_main=135, options=options)
+
 
     try:
         # Use credentials to log in
@@ -540,17 +519,18 @@ def run_bot_for_account(username, password, target_profile, max_to_follow, sexy_
         # Main bot actions
         go_to_target_profile(driver, target_profile)
         open_followers_list(driver)
-        usernames = get_follower_usernames(driver, already_followed_file, max_targets=max_to_follow)
-        followed = follow_male_usernames(
+        usernames = get_follower_usernames(driver, already_followed_file, max_targets=max_to_follow, language=language)
+        followed = follow_users(
             driver,
             usernames,
             already_followed_file,
             followed_users_file,
-            max_to_follow=max_to_follow
+            max_to_follow=max_to_follow,
+            language=language
         )
 
         for u in followed:
-            send_dm(driver, u, sexy_link)
+            send_dm(driver, u, sexy_link, language)
             time.sleep(random.uniform(3, 6))
             like_recent_posts(driver, u, num_posts=1)
 
@@ -568,7 +548,8 @@ def run_for_all_accounts():
             target = row['target_profile']
             max_to_follow = int(row['max_to_follow'])
             sexy_link = row['sexy_link']
-            language = row.get('language', 'italian')
+            language = row.get('language', 'italian').strip().lower()
+
 
             print(f"\n🔄 Running bot for {username} targeting {target}")
             run_bot_for_account(username, password, target, max_to_follow, sexy_link, language)
