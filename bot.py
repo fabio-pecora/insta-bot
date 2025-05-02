@@ -327,6 +327,8 @@ def warm_up_before_follow(driver):
     except Exception as e:
         print(f"⚠️ Failed to warm up before follow — {e}")
 
+...
+
 def follow_users(driver, usernames, already_followed_file, followed_users_file, max_to_follow=15, language="italian"):
     followed_this_round = []
     targets = []
@@ -338,7 +340,6 @@ def follow_users(driver, usernames, already_followed_file, followed_users_file, 
             reader = csv.reader(file)
             return any(row[0] == username for row in reader)
 
-    # ✅ Step 1: filter usernames based on language setting
     for username in usernames:
         if language == "italian":
             if is_male_username(username) and not is_already_followed(username):
@@ -354,7 +355,6 @@ def follow_users(driver, usernames, already_followed_file, followed_users_file, 
 
     print(f"🚀 Visiting {len(targets)} profiles and following them...")
 
-    # ✅ Step 2: visit and follow
     for username in targets:
         try:
             driver.get(f"https://www.instagram.com/{username}/")
@@ -364,6 +364,18 @@ def follow_users(driver, usernames, already_followed_file, followed_users_file, 
 
             if is_private_account(driver):
                 print(f"🔒 Skipping {username} — Private account")
+
+                now = datetime.now().strftime("%m/%d/%Y")
+                with open(already_followed_file, mode='a', newline='', encoding='utf-8') as f:
+                    writer = csv.writer(f)
+                    writer.writerow([username])
+                    print(f"📝 Added {username} to already_followed (private profile)")
+
+                with open(followed_users_file, mode='a', newline='', encoding='utf-8') as f:
+                    writer = csv.writer(f)
+                    writer.writerow([username, now])
+                    print(f"📅 Logged private profile {username} in followed_users_file")
+
                 continue
 
             buttons = WebDriverWait(driver, 5).until(
@@ -390,6 +402,9 @@ def follow_users(driver, usernames, already_followed_file, followed_users_file, 
             print(f"⚠️ Could not follow {username} — {e}")
 
     return followed_this_round
+
+...
+
 
 
 def like_recent_posts(driver,username, num_posts=2):
