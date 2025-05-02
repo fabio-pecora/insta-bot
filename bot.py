@@ -365,17 +365,11 @@ def follow_users(driver, usernames, already_followed_file, followed_users_file, 
             if is_private_account(driver):
                 print(f"🔒 Skipping {username} — Private account")
 
-                now = datetime.now().strftime("%m/%d/%Y")
+               
                 with open(already_followed_file, mode='a', newline='', encoding='utf-8') as f:
                     writer = csv.writer(f)
                     writer.writerow([username])
                     print(f"📝 Added {username} to already_followed (private profile)")
-
-                with open(followed_users_file, mode='a', newline='', encoding='utf-8') as f:
-                    writer = csv.writer(f)
-                    writer.writerow([username, now])
-                    print(f"📅 Logged private profile {username} in followed_users_file")
-
                 continue
 
             buttons = WebDriverWait(driver, 5).until(
