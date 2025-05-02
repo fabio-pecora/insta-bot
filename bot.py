@@ -228,9 +228,24 @@ def unfollow_old_users(driver, base_dir):
     with open(followed_users_file, mode='r', newline='', encoding='utf-8') as file:
         rows = [row for row in csv.reader(file) if len(row) == 2]
 
+     # Filter users followed 2+ days ago
+    threshold_date = datetime.now() - timedelta(days=2)
+    eligible_rows = []
+    for row in rows:
+        try:
+            follow_date = datetime.strptime(row[1], "%m/%d/%Y")
+            if follow_date <= threshold_date:
+                eligible_rows.append(row)
+        except Exception as e:
+            print(f"⚠️ Skipping row with invalid date: {row} — {e}")
+
+    if not eligible_rows:
+        print("ℹ️ No users old enough to unfollow.")
+        return
+
     # Pick up to 20 random users to unfollow
-    num_to_unfollow = min(random.randint(15, 20), len(rows))
-    rows_to_unfollow = random.sample(rows, num_to_unfollow) if rows else []
+    num_to_unfollow = min(random.randint(15, 20), len(eligible_rows))
+    rows_to_unfollow = random.sample(eligible_rows, num_to_unfollow)
 
     still_followed = []
 
