@@ -195,17 +195,14 @@ def get_follower_usernames(driver, already_followed_file, max_targets=15, langua
                 if username and username not in usernames_seen:
                     usernames_seen.add(username)
                     print(f"✅ Found: {username}")
+                # Queue everyone that is not in already followed file
+                if not is_already_followed(username):
+                    valid_targets.append(username)
+                    print(f"✅ Queued username: {username}")
 
-                    if language == "italian":
-                        # Only queue males for italian accounts
-                        if is_male_username(username) and not is_already_followed(username):
-                            valid_targets.append(username)
-                            print(f"✅ Queued male username: {username}")
-                    else:
-                        # Queue everyone for english accounts
-                        if not is_already_followed(username):
-                            valid_targets.append(username)
-                            print(f"✅ Queued username: {username}")
+                    if not is_already_followed(username):
+                        valid_targets.append(username)
+                        print(f"✅ Queued username: {username}")
 
                     if len(valid_targets) >= max_targets:
                         break
@@ -245,12 +242,13 @@ def unfollow_old_users(driver, base_dir):
 
     # Pick up to 20 random users to unfollow
     num_to_unfollow = min(random.randint(15, 20), len(eligible_rows))
-    rows_to_unfollow = random.sample(eligible_rows, num_to_unfollow)
+    rows_to_unfollow = [[u.strip(), d.strip()] for u, d in random.sample(eligible_rows, num_to_unfollow)]
+
 
     still_followed = []
 
     for username, date_str in rows:
-        if [username, date_str] not in rows_to_unfollow:
+        if username not in [u for u, _ in rows_to_unfollow]:
             still_followed.append([username, date_str])
             continue
 
@@ -341,14 +339,9 @@ def follow_users(driver, usernames, already_followed_file, followed_users_file, 
             return any(row[0] == username for row in reader)
 
     for username in usernames:
-        if language == "italian":
-            if is_male_username(username) and not is_already_followed(username):
-                targets.append(username)
-                print(f"✅ Queued male username: {username}")
-        else:
-            if not is_already_followed(username):
-                targets.append(username)
-                print(f"✅ Queued username: {username}")
+        if not is_already_followed(username):
+            targets.append(username)
+            print(f"✅ Queued username: {username}")
 
         if len(targets) >= max_to_follow:
             break
